@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app import models as m
 from app.database import get_db
+from app.grading import grade_open_response
 from app.scoring import (
     recompute_lesson_status,
     record_attempt,
@@ -12,10 +13,6 @@ from app.scoring import (
 )
 
 router = APIRouter(prefix="/api/questions", tags=["questions"])
-
-# Placeholder until B7 wires in the grader from docs/PROMPTS.md §4. Open answers
-# are accepted as-is so the mastery flow stays exercisable end to end.
-OPEN_STUB_FEEDBACK = "Open-response grading is not wired up yet — this answer was accepted automatically."
 
 
 class AnswerRequest(BaseModel):
@@ -51,10 +48,9 @@ def answer_question(
         is_correct = _check_mcq(question, payload.answer)
         feedback = None
     else:
-        is_correct = True
-        feedback = OPEN_STUB_FEEDBACK
+        is_correct, feedback = grade_open_response(question, payload.answer)
 
-    record_attempt(db, question, payload.answer, is_correct, feedback)
+    attempt = record_attempt(db, question, payload.answer, is_correct, feedback)
     db.flush()  # so the mastery recount below sees this attempt
 
     upsert_review_item(db, question, is_correct)
@@ -69,4 +65,5 @@ def answer_question(
         "feedback": feedback,
         "lesson_status": lesson_status,
         "streak_days": streak_days,
+        "attempt_number": attempt.attempt_number,
     }

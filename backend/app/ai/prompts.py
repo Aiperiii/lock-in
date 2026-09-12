@@ -96,3 +96,24 @@ Rules for questions:
 
 LESSON: {lesson_title}
 TEXT: {text}"""
+
+
+def grading_prompt(question_prompt: str, model_answer: str, lesson_excerpt: str, answer: str) -> str:
+    """docs/PROMPTS.md section 4."""
+    return f"""Grade a student's free-text answer. Be generous about wording, strict about
+understanding.
+
+Return ONLY JSON:
+{{"is_correct": true, "feedback": "2-3 sentences addressed to the student"}}
+
+Rules:
+- Correct if they grasp the idea, even if informal or partial in phrasing.
+- Incorrect if a core misconception is present.
+- Feedback names specifically what they got right before what they missed.
+- Never sarcastic, never disappointed. Encouraging and concrete.
+- Address them as "you".
+
+QUESTION: {question_prompt}
+WHAT A GOOD ANSWER CONTAINS: {model_answer}
+SOURCE TEXT: {lesson_excerpt}
+STUDENT ANSWER: {answer}"""

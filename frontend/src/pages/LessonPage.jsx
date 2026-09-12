@@ -14,8 +14,8 @@ function ArrowLeftIcon() {
   )
 }
 
-/** Shared "is_correct + feedback + explanation" strip shown once a question
- * has any attempt — same shape for MCQ and open response. */
+/** MCQ's result strip: grading is deterministic, so a plain correct/not-quite
+ * label plus the reference explanation is the right amount of directness. */
 function AttemptResult({ isCorrect, feedback, explanation }) {
   return (
     <div className="mt-4 border-t border-border pt-4">
@@ -24,6 +24,23 @@ function AttemptResult({ isCorrect, feedback, explanation }) {
       </p>
       {feedback && <p className="mt-1 text-ink-muted">{feedback}</p>}
       {explanation && <p className="mt-1 text-ink-muted">{explanation}</p>}
+    </div>
+  )
+}
+
+/** Open response's result strip: grading is a judgment call, not a lookup, so
+ * a wrong attempt never says "incorrect" — just the AI's own conversational
+ * feedback (which per docs/PROMPTS.md already names what they got right
+ * before what they missed) and a quiet attempt count. Retries aren't capped,
+ * so there's no "attempts remaining" framing, just a running tally. */
+function OpenAttemptResult({ isCorrect, feedback, attemptCount }) {
+  return (
+    <div className="mt-4 border-t border-border pt-4">
+      {isCorrect && <p className="font-sans text-sm font-medium text-green">Correct</p>}
+      {feedback && <p className={isCorrect ? 'mt-1 text-ink-muted' : 'text-ink-muted'}>{feedback}</p>}
+      <MonoLabel tone="faint" className="mt-2 block">
+        Attempt {attemptCount}
+      </MonoLabel>
     </div>
   )
 }
@@ -105,11 +122,13 @@ function McqQuestion({ question }) {
 
 function OpenQuestion({ question }) {
   const [attempt, setAttempt] = useState(question.user_attempt)
-  const [explanation, setExplanation] = useState(question.explanation)
   const [text, setText] = useState(question.user_attempt?.answer ?? '')
+  const [attemptCount, setAttemptCount] = useState(question.user_attempt?.attempt_number ?? 0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
+  // Never re-answerable once right; a wrong attempt is always retriable, with
+  // no limit on how many times.
   const locked = attempt?.is_correct === true
 
   async function handleSubmit() {
@@ -120,7 +139,7 @@ function OpenQuestion({ question }) {
     try {
       const result = await answerQuestion(question.id, trimmed)
       setAttempt({ answer: trimmed, is_correct: result.is_correct, feedback: result.feedback })
-      setExplanation(result.explanation)
+      setAttemptCount(result.attempt_number)
     } catch (err) {
       setError(err)
     } finally {
@@ -150,7 +169,7 @@ function OpenQuestion({ question }) {
       )}
 
       {attempt && (
-        <AttemptResult isCorrect={attempt.is_correct} feedback={attempt.feedback} explanation={explanation} />
+        <OpenAttemptResult isCorrect={attempt.is_correct} feedback={attempt.feedback} attemptCount={attemptCount} />
       )}
       {error && <p className="mt-2 text-ink-muted">Couldn't submit that — try again.</p>}
     </Card>
