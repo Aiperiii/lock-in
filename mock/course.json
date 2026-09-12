@@ -1,0 +1,787 @@
+{
+  "id": "9a0dc017-f1f2-43de-8489-e6eb7080c159",
+  "title": "Introduction to Algorithms",
+  "author": "Cormen, Leiserson, Rivest & Stein",
+  "cover_seed": 42,
+  "status": "ready",
+  "progress_percent": 11,
+  "chapters": [
+    {
+      "id": "798b33a4-24fd-4a8f-b1b9-9a747594a8d6",
+      "number": 1,
+      "title": "Complexity & Big-O",
+      "summary": "How to measure algorithm cost independently of hardware.",
+      "lessons": [
+        {
+          "id": "c5ab29b5-1583-46ad-aab4-a76019c1b2be",
+          "number": 1,
+          "title": "What Is an Algorithm?",
+          "estimated_minutes": 8,
+          "kind": "reading",
+          "concept_tags": [
+            "algorithm-definition",
+            "why-asymptotic-analysis"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "An algorithm is a finite sequence of well-defined steps that transforms an input into an output. The emphasis on *finite* matters: a procedure that never terminates is not an algorithm, however useful its partial results might be.",
+              "id": "7590f69f-335f-4dc5-8a12-b1e75e68f619",
+              "order": 0
+            },
+            {
+              "kind": "prose",
+              "content": "Every algorithm must also be unambiguous. Each step has to be precise enough that it could be carried out mechanically, without judgement calls from whoever is following it.",
+              "id": "8786c7cf-36b6-4452-8032-f7a655a3067b",
+              "order": 1
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "61425239-2bbc-44bf-9b9d-adf9282ff405",
+                "type": "mcq",
+                "prompt": "Which of the following disqualifies a procedure from being an algorithm?",
+                "options": [
+                  "It uses randomness",
+                  "It never terminates on some inputs",
+                  "It is slow",
+                  "It requires extra memory"
+                ],
+                "correct_index": 1,
+                "explanation": "Finiteness is part of the definition. Randomized and slow procedures are still algorithms; a non-terminating one is not.",
+                "concept_tag": "algorithm-definition",
+                "difficulty": "easy",
+                "source": "book",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "230f2ea3-56c5-466d-a824-69024e9db527",
+              "order": 2
+            },
+            {
+              "kind": "prose",
+              "content": "We care about algorithms in the abstract, independent of the machine running them. This is why analysis focuses on how work grows with input size rather than on seconds elapsed on a particular laptop.",
+              "id": "5c028644-38ae-4900-8536-4d66a5ee33df",
+              "order": 3
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "04e6b9f0-5b86-49a0-b88e-688a36ce4bbf",
+                "type": "open",
+                "prompt": "In your own words, why is measuring an algorithm in seconds a poor way to compare two algorithms?",
+                "options": null,
+                "correct_index": null,
+                "explanation": "Timing measures the environment as much as the algorithm; growth rate isolates the algorithm.",
+                "concept_tag": "why-asymptotic-analysis",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": "Think about what changes when you run the same code on a faster machine.",
+                "model_answer": "Wall-clock time depends on hardware, language, compiler and load. Growth rate is a property of the algorithm itself and predicts behaviour as input scales."
+              },
+              "id": "c9e5394a-00ee-449c-98fb-79be1b0a824c",
+              "order": 4
+            }
+          ]
+        },
+        {
+          "id": "bfe71dd4-b220-4026-b3ee-c45b69110c8a",
+          "number": 2,
+          "title": "Growth of Functions",
+          "estimated_minutes": 14,
+          "kind": "reading",
+          "concept_tags": [
+            "growth-rates",
+            "growth-hierarchy"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "The running time of an algorithm is usually expressed as a function of input size n. Rather than count exact operations, we ask how that count grows as n increases.",
+              "id": "2ddc158f-447c-4953-bd39-b6377246c260",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "b5a9edc6-65f5-4524-a92d-c0c07a986e5a",
+                "type": "mcq",
+                "prompt": "An algorithm performs 3n + 17 operations. What dominates as n grows large?",
+                "options": [
+                  "The constant 17",
+                  "The coefficient 3",
+                  "The term n",
+                  "Nothing dominates"
+                ],
+                "correct_index": 2,
+                "explanation": "As n grows, the linear term overwhelms the constant, and constant factors do not change the growth class.",
+                "concept_tag": "growth-rates",
+                "difficulty": "easy",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "26ccd81d-a5ea-44d3-a4e4-fba784f89662",
+              "order": 1
+            },
+            {
+              "kind": "prose",
+              "content": "Growth rates form a hierarchy. Constant time is followed by logarithmic, then linear, then linearithmic, then polynomial, then exponential and factorial time.",
+              "id": "14347360-96a1-445b-9011-ad7c2f61a53c",
+              "order": 2
+            },
+            {
+              "kind": "prose",
+              "content": "The gaps between these classes are enormous at scale. An O(n²) algorithm on a million elements does roughly a trillion operations; an O(n log n) algorithm does about twenty million.",
+              "id": "ae2d28db-47b4-4707-97c7-0be9ea9e9389",
+              "order": 3
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "afc711d7-00f7-454f-a091-72629af84e3d",
+                "type": "mcq",
+                "prompt": "Which ordering is correct from slowest-growing to fastest-growing?",
+                "options": [
+                  "O(log n), O(1), O(n), O(n²)",
+                  "O(1), O(log n), O(n log n), O(n²)",
+                  "O(1), O(n), O(log n), O(n²)",
+                  "O(n), O(1), O(log n), O(2ⁿ)"
+                ],
+                "correct_index": 1,
+                "explanation": "Constant, then logarithmic, then linear, then linearithmic, then polynomial.",
+                "concept_tag": "growth-hierarchy",
+                "difficulty": "medium",
+                "source": "book",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "71738501-a633-49c1-9c9f-8ce6213937bf",
+              "order": 4
+            }
+          ]
+        },
+        {
+          "id": "de70c363-9316-4bcb-9a61-aed08ffc5be1",
+          "number": 3,
+          "title": "Big-O, Θ, and Ω Notation",
+          "estimated_minutes": 18,
+          "kind": "reading",
+          "concept_tags": [
+            "nested-loop-complexity",
+            "logarithmic-scaling",
+            "simplifying-big-o",
+            "amortized-analysis"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "An algorithm's time complexity describes how its runtime grows as input size n increases. Big-O notation captures the worst-case upper bound, discarding constants and lower-order terms — O(3n² + 2n + 7) simplifies to O(n²).",
+              "id": "27b3b5ba-1d7a-4302-9bd4-158c8d83e477",
+              "order": 0
+            },
+            {
+              "kind": "prose",
+              "content": "The hierarchy from fastest to slowest growth: O(1) → O(log n) → O(n) → O(n log n) → O(n²) → O(2ⁿ) → O(n!). Binary search achieves O(log n) because each step halves the search space — one million elements need at most ~20 comparisons.",
+              "id": "aec287ea-ddcb-48c3-afae-e4fdc0c1ddf2",
+              "order": 1
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "7d5fc3f3-a5c7-489b-be9e-bf6257cfd99c",
+                "type": "mcq",
+                "prompt": "A nested loop where the outer runs n times and the inner also runs n times has what time complexity?",
+                "options": [
+                  "O(n)",
+                  "O(n log n)",
+                  "O(n²)",
+                  "O(2ⁿ)"
+                ],
+                "correct_index": 2,
+                "explanation": "Each of the n outer iterations triggers n inner iterations, giving n × n total work.",
+                "concept_tag": "nested-loop-complexity",
+                "difficulty": "easy",
+                "source": "book",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "40f96260-cc5c-4dcd-b26c-9128e9686d04",
+              "order": 2
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "d3f0a3cb-cbc9-47a0-a845-12ab39363e2c",
+                "type": "open",
+                "prompt": "In your own words, explain why O(log n) algorithms scale so dramatically better than O(n) for large inputs. Give one concrete example.",
+                "options": null,
+                "correct_index": null,
+                "explanation": "Multiplying the input size adds only a constant to a logarithmic cost, but multiplies a linear cost.",
+                "concept_tag": "logarithmic-scaling",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": "Consider how binary search handles 10⁶ vs 10⁹ elements — how many more steps does it need?",
+                "model_answer": "Logarithmic growth adds a constant number of steps each time input multiplies. Going from a million to a billion elements adds only about ten comparisons to a binary search, while a linear scan does a thousand times more work."
+              },
+              "id": "17d19915-55ec-4c85-b212-0ce52199e8d8",
+              "order": 3
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "fbd2b028-0a92-458d-b8df-11245d2d2062",
+                "type": "mcq",
+                "prompt": "Which correctly simplifies O(5n³ + 12n² + 100)?",
+                "options": [
+                  "O(5n³)",
+                  "O(n³ + n²)",
+                  "O(n³)",
+                  "O(n²)"
+                ],
+                "correct_index": 2,
+                "explanation": "Constant factors and lower-order terms are dropped, leaving the dominant term.",
+                "concept_tag": "simplifying-big-o",
+                "difficulty": "easy",
+                "source": "book",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "476cb1a5-9b20-423a-bf82-0b19715d1eeb",
+              "order": 4
+            },
+            {
+              "kind": "prose",
+              "content": "Space complexity follows the same notation. Recursive algorithms consume O(depth) call stack frames. A function that recurses n levels deep without tail-call optimization uses O(n) stack space — even if it does no explicit allocation.",
+              "id": "64d31b82-8204-4e19-8386-17ee9bb46441",
+              "order": 5
+            },
+            {
+              "kind": "prose",
+              "content": "Amortized analysis averages cost across a sequence of operations. A dynamic array doubles capacity when full — one O(n) resize — but this is rare. Summing all n appends, total cost is O(n), so each append is O(1) amortized.",
+              "id": "110b85d0-d576-4a23-946f-4ee114c85b48",
+              "order": 6
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "8ce6d390-d6bd-4a0a-995b-5a6ed510e802",
+                "type": "open",
+                "prompt": "Why doesn't the occasional O(n) resize contradict the claim that dynamic array append is O(1) amortized?",
+                "options": null,
+                "correct_index": null,
+                "explanation": "The expensive operations are rare enough that their total cost is linear across all appends.",
+                "concept_tag": "amortized-analysis",
+                "difficulty": "hard",
+                "source": "book",
+                "hint": "How often does a resize happen relative to the total number of appends that precede it?",
+                "model_answer": "Resizes happen at exponentially spaced intervals, so their total cost across n appends is O(n). Spread over n operations that averages to constant time each."
+              },
+              "id": "6fff8286-cb2e-4931-b93b-1f01224cbac4",
+              "order": 7
+            }
+          ]
+        },
+        {
+          "id": "6278e1c9-dd1d-4368-a8b7-dffdbee39702",
+          "number": 4,
+          "title": "Practice: Analyze the Complexity",
+          "estimated_minutes": 12,
+          "kind": "practice",
+          "concept_tags": [
+            "loop-analysis",
+            "sequential-vs-nested"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Practice applying complexity analysis to code you have not seen before. For each snippet, identify the dominant operation and count how many times it runs.",
+              "id": "b9a397cf-e083-4fe5-a698-6843467dda0f",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "715fb817-22e9-4338-b339-82fef7d3760a",
+                "type": "mcq",
+                "prompt": "A loop that halves n each iteration until n reaches 1 runs how many times?",
+                "options": [
+                  "n times",
+                  "n/2 times",
+                  "log₂ n times",
+                  "√n times"
+                ],
+                "correct_index": 2,
+                "explanation": "Each iteration halves the remaining size, so the count is the number of halvings needed, which is log₂ n.",
+                "concept_tag": "loop-analysis",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "27eda185-da63-436b-8212-77068cf951c0",
+              "order": 1
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "f3f3974a-ac2a-4857-ab3f-7c65786c7f2c",
+                "type": "mcq",
+                "prompt": "Two sequential loops, each running n times, give what total complexity?",
+                "options": [
+                  "O(n²)",
+                  "O(2n) = O(n)",
+                  "O(n log n)",
+                  "O(log n)"
+                ],
+                "correct_index": 1,
+                "explanation": "Sequential work adds rather than multiplies, and constant factors drop.",
+                "concept_tag": "sequential-vs-nested",
+                "difficulty": "easy",
+                "source": "book",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "60a00cbb-ce9d-40b1-a324-0c29d026bc84",
+              "order": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cb6796eb-da66-490e-8a92-1412367d6541",
+      "number": 2,
+      "title": "Sorting Algorithms",
+      "summary": "Comparison sorts and their bounds",
+      "lessons": [
+        {
+          "id": "60bbaca6-ac1d-4ce4-b7cd-8e67ecf116a8",
+          "number": 1,
+          "title": "Insertion Sort",
+          "estimated_minutes": 10,
+          "kind": "reading",
+          "concept_tags": [
+            "insertion-sort"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Insertion Sort. Real content comes from the uploaded PDF.",
+              "id": "0764c0bd-ff3e-4a59-9315-8d5296e9fe45",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "69baf09c-9530-4bac-8d84-3d8ce63f83a2",
+                "type": "mcq",
+                "prompt": "Sample question for Insertion Sort?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "insertion-sort",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "1ff75269-d359-47e5-8f75-31fc5968d0a6",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "b631b5a9-d1b6-4774-a48d-c2b8776808fc",
+          "number": 2,
+          "title": "Merge Sort",
+          "estimated_minutes": 16,
+          "kind": "reading",
+          "concept_tags": [
+            "merge-sort"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Merge Sort. Real content comes from the uploaded PDF.",
+              "id": "b82616ec-847d-4c75-b4b6-1a8b8913f383",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "a72f9ccc-a9be-4286-af93-62bfa75a7f49",
+                "type": "mcq",
+                "prompt": "Sample question for Merge Sort?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "merge-sort",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "7b8fbf57-e530-412c-8fe4-f268a907e791",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "8789d60c-f368-40fb-b532-50b120afe46f",
+          "number": 3,
+          "title": "Quicksort",
+          "estimated_minutes": 18,
+          "kind": "reading",
+          "concept_tags": [
+            "quicksort"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Quicksort. Real content comes from the uploaded PDF.",
+              "id": "7889980c-625c-434f-bf04-6f5a12b39abc",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "92b3d6cb-f1c6-4a5d-80e7-e240247ee902",
+                "type": "mcq",
+                "prompt": "Sample question for Quicksort?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "quicksort",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "f9dded11-6ff1-44d0-98db-6e42396a8d83",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "bc74c9b6-4e96-40f5-acb6-f22682001be5",
+          "number": 4,
+          "title": "Lower Bounds for Sorting",
+          "estimated_minutes": 12,
+          "kind": "reading",
+          "concept_tags": [
+            "sorting-lower-bound"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Lower Bounds for Sorting. Real content comes from the uploaded PDF.",
+              "id": "ecb55663-cfda-434f-9677-8d4e4ac1fcfc",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "23fd40a5-3a72-4630-95df-412cc708bfc5",
+                "type": "mcq",
+                "prompt": "Sample question for Lower Bounds for Sorting?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "sorting-lower-bound",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "9f441d41-68d0-4015-a0fc-de57339f9250",
+              "order": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b8a4bf3a-b807-4a91-8d7f-b6de96dd034e",
+      "number": 3,
+      "title": "Data Structures",
+      "summary": "Structures that make operations cheap",
+      "lessons": [
+        {
+          "id": "1b9acf30-ad57-4dfd-bd05-ebd6f894a5a1",
+          "number": 1,
+          "title": "Stacks and Queues",
+          "estimated_minutes": 9,
+          "kind": "reading",
+          "concept_tags": [
+            "stacks-queues"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Stacks and Queues. Real content comes from the uploaded PDF.",
+              "id": "cc6be7a9-eb60-43d2-8b93-0ff33d914f1b",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "cb80c22b-36a1-4116-962e-1023d6f59bcf",
+                "type": "mcq",
+                "prompt": "Sample question for Stacks and Queues?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "stacks-queues",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "82c3b397-1430-4490-9154-58b8357ca303",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "91eb3c41-539c-445a-9bc5-4141307cdd07",
+          "number": 2,
+          "title": "Hash Tables",
+          "estimated_minutes": 15,
+          "kind": "reading",
+          "concept_tags": [
+            "hash-tables"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Hash Tables. Real content comes from the uploaded PDF.",
+              "id": "0b27a44d-7be9-40e1-aad1-dfe8966d3262",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "09748864-6287-45b2-ba6b-81fd8d414d7d",
+                "type": "mcq",
+                "prompt": "Sample question for Hash Tables?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "hash-tables",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "b57a2d90-8b40-4b0b-926e-e84d22a5eb00",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "1d7133d1-80f2-4751-8786-86300ff702ef",
+          "number": 3,
+          "title": "Binary Search Trees",
+          "estimated_minutes": 17,
+          "kind": "reading",
+          "concept_tags": [
+            "bst"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Binary Search Trees. Real content comes from the uploaded PDF.",
+              "id": "985cadbb-7278-4cb7-8ff4-9cf5a7c57e97",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "e9259dbb-17dc-4e5d-9041-8e673e0661d8",
+                "type": "mcq",
+                "prompt": "Sample question for Binary Search Trees?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "bst",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "4c2316fd-4e80-43d2-b78b-6e04cc6a2fe4",
+              "order": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "da9c5615-892e-4e2c-a8cf-175b73f3d214",
+      "number": 4,
+      "title": "Graph Algorithms",
+      "summary": "Traversal and shortest paths",
+      "lessons": [
+        {
+          "id": "5c25da3a-fa79-46b6-98f1-2161127039e4",
+          "number": 1,
+          "title": "Graph Representations",
+          "estimated_minutes": 11,
+          "kind": "reading",
+          "concept_tags": [
+            "graph-representation"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Graph Representations. Real content comes from the uploaded PDF.",
+              "id": "efbb3559-da7e-4a7a-8cc4-b389c5333f2a",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "d43cfc81-0902-4663-9cb7-a54415160994",
+                "type": "mcq",
+                "prompt": "Sample question for Graph Representations?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "graph-representation",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "92cfdca5-c155-4313-bc2c-eeb912e7948c",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "2e2bfa48-88fe-46f9-8235-13204a5ac897",
+          "number": 2,
+          "title": "BFS and DFS",
+          "estimated_minutes": 16,
+          "kind": "reading",
+          "concept_tags": [
+            "traversal"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for BFS and DFS. Real content comes from the uploaded PDF.",
+              "id": "63e45da1-33a8-4e9f-abf9-8f89157dfdb8",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "b741bd12-68a3-428e-a0ce-fcf3d98d6702",
+                "type": "mcq",
+                "prompt": "Sample question for BFS and DFS?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "traversal",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "f94e77f9-48d7-40e0-b486-9a53df1f4158",
+              "order": 1
+            }
+          ]
+        },
+        {
+          "id": "b7f6153c-5a90-4068-933d-422a10f96672",
+          "number": 3,
+          "title": "Dijkstra's Algorithm",
+          "estimated_minutes": 19,
+          "kind": "reading",
+          "concept_tags": [
+            "dijkstra"
+          ],
+          "blocks": [
+            {
+              "kind": "prose",
+              "content": "Placeholder prose for Dijkstra's Algorithm. Real content comes from the uploaded PDF.",
+              "id": "2211cccb-f3f0-402b-8b2f-80dccf3b2c21",
+              "order": 0
+            },
+            {
+              "kind": "question",
+              "question": {
+                "id": "9ed23a52-e5ab-46da-bf6b-f44a7780be71",
+                "type": "mcq",
+                "prompt": "Sample question for Dijkstra's Algorithm?",
+                "options": [
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "correct_index": 0,
+                "explanation": "Sample explanation.",
+                "concept_tag": "dijkstra",
+                "difficulty": "medium",
+                "source": "ai",
+                "hint": null,
+                "model_answer": null
+              },
+              "id": "03787266-4339-4937-b991-1552be26b42e",
+              "order": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
