@@ -12,6 +12,23 @@ const PALETTES = [
 
 const MOTIFS = ['dots', 'stripes', 'plus', 'arcs']
 
+// Discrete size variants rather than container-query-scaled text: a cqw-sized
+// child inside a container-type element whose own size is still being
+// resolved by a grid/flex track creates a circular sizing dependency that
+// browsers resolve by falling back to an oversized "natural" width for query
+// purposes — confirmed by isolating it down to two plain divs in a 2-column
+// grid. min-width:0 does not fix this (unlike the separate, unrelated
+// aspect-ratio blowout below). Fixed sizes per named context sidestep the
+// whole problem.
+const TITLE_SIZE_CLASSES = {
+  sm: 'text-xs',
+  md: 'text-sm sm:text-base',
+}
+const AUTHOR_SIZE_CLASSES = {
+  sm: 'text-[0.65rem]',
+  md: 'text-xs',
+}
+
 /** Deterministic PRNG (mulberry32) so a given cover_seed always produces the
  * same sequence of derived values — same book, same cover, every reload. */
 function mulberry32(seed) {
@@ -64,14 +81,34 @@ function MotifShape({ motif, scale, color }) {
 
 /** A generated book cover: a pastel tint plus a repeating geometric motif,
  * both deterministic from `coverSeed`, with title/author overlaid in serif.
- * No images — the motif is an inline SVG pattern. */
-export default function BookCover({ coverSeed, title, author, className = '' }) {
+ * No images — the motif is an inline SVG pattern.
+ *
+ * `size`: 'sm' for a small fixed-width thumbnail (continue-reading card, book
+ * hero), 'md' (default) for the library grid, which has more room to give
+ * the title a larger, more legible size.
+ *
+ * Always fills its container at w-full (needed for grid layouts). To size it
+ * smaller, wrap it in a sized element rather than passing a width utility
+ * via `className` — a same-specificity `w-28` passed that way is not
+ * guaranteed to beat the component's own `w-full` in Tailwind's generated
+ * CSS; which one wins depends on build-wide class discovery order, not on
+ * this call site, so it can silently flip when unrelated code changes
+ * elsewhere in the app. `className` is still fine for anything that isn't
+ * width (radius, border, etc).
+ *
+ * Also carries min-w-0: an aspect-ratio element with width:100% inside a
+ * grid or flex track can force that track wider than its fair share even
+ * with a blowout-safe minmax(0,1fr) — the aspect-ratio box's own automatic
+ * minimum size is computed from its max-content size unless min-w-0
+ * overrides it on the box itself. Confirmed by isolating it down to two
+ * plain aspect-ratio divs in a 2-col grid. */
+export default function BookCover({ coverSeed, title, author, size = 'md', className = '' }) {
   const { palette, motif, scale, rotation } = useMemo(() => deriveCover(coverSeed), [coverSeed])
   const patternId = `cover-motif-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
 
   return (
     <div
-      className={`relative aspect-[3/4] w-full overflow-hidden rounded-lg border border-border @container ${className}`}
+      className={`relative aspect-[3/4] w-full min-w-0 overflow-hidden rounded-lg border border-border ${className}`}
       style={{ backgroundColor: palette.bg }}
     >
       <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
@@ -89,19 +126,12 @@ export default function BookCover({ coverSeed, title, author, className = '' }) 
         <rect width="100%" height="100%" fill={`url(#${patternId})`} opacity="0.55" />
       </svg>
 
-      {/* Font sizes are container-query units (cqw), not fixed, so a title
-          scales down on a small grid thumbnail and doesn't blow up on a
-          large one — BookCover renders at very different widths depending
-          on where it's used. overflow-hidden (above) plus line-clamp is the
-          backstop for anything still too long to fit even shrunk. */}
       <div className="relative flex h-full flex-col justify-end gap-1 overflow-hidden p-4">
-        <p className="line-clamp-2 font-serif leading-snug text-ink text-[clamp(0.7rem,8cqw,1.125rem)]">
+        <p className={`line-clamp-2 font-serif leading-snug text-ink ${TITLE_SIZE_CLASSES[size]}`}>
           {title}
         </p>
         {author && (
-          <p className="line-clamp-1 font-serif text-ink-muted text-[clamp(0.55rem,5cqw,0.8rem)]">
-            {author}
-          </p>
+          <p className={`line-clamp-1 font-serif text-ink-muted ${AUTHOR_SIZE_CLASSES[size]}`}>{author}</p>
         )}
       </div>
     </div>

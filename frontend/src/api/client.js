@@ -17,3 +17,7 @@ export function getHome() {
 export function getBooks() {
   return request('/books')
 }
+
+export function getBook(id) {
+  return request(`/books/${id}`)
+}

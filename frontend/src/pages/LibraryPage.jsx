@@ -80,13 +80,15 @@ export default function LibraryPage() {
               </h1>
 
               {continueBook && (
-                <Card className="flex min-h-56 items-center gap-8 p-8">
-                  <BookCover
-                    coverSeed={continueBook.cover_seed}
-                    title={continueBook.title}
-                    author={continueBook.author}
-                    className="w-32 shrink-0 sm:w-36"
-                  />
+                <Card className="flex flex-col gap-6 p-8 sm:min-h-56 sm:flex-row sm:items-center sm:gap-8">
+                  <div className="w-32 shrink-0 sm:w-36">
+                    <BookCover
+                      coverSeed={continueBook.cover_seed}
+                      title={continueBook.title}
+                      author={continueBook.author}
+                      size="sm"
+                    />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <MonoLabel tone="faint" size="sm">
                       Continue reading
@@ -110,14 +112,14 @@ export default function LibraryPage() {
             <h2 className="mb-4 font-mono text-xs uppercase tracking-wide text-ink-faint">Library</h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 md:grid-cols-4">
               {books.map((book) => (
-                <Link key={book.id} to={`/books/${book.id}`}>
+                <Link key={book.id} to={`/books/${book.id}`} className="min-w-0">
                   <BookCover coverSeed={book.cover_seed} title={book.title} author={book.author} />
                   <ProgressBar value={book.progress_percent} className="mt-2" />
                 </Link>
               ))}
               <Link
                 to="/upload"
-                className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border text-ink-muted transition-colors hover:border-ink-faint hover:text-ink"
+                className="flex aspect-[3/4] w-full min-w-0 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border text-ink-muted transition-colors hover:border-ink-faint hover:text-ink"
               >
                 <PlusIcon />
                 <span className="font-mono text-xs">Add a book</span>
