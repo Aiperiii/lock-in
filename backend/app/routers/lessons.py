@@ -33,6 +33,7 @@ def get_lesson(lesson_id: str, db: Session = Depends(get_db)):
     return {
         "id": lesson.id,
         "title": lesson.title,
+        "book_id": book.id,
         "book_title": book.title,
         "chapter_number": chapter.number,
         "estimated_minutes": lesson.estimated_minutes,

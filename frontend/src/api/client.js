@@ -21,3 +21,15 @@ export function getBooks() {
 export function getBook(id) {
   return request(`/books/${id}`)
 }
+
+export function getLesson(id) {
+  return request(`/lessons/${id}`)
+}
+
+export function answerQuestion(questionId, answer) {
+  return request(`/questions/${questionId}/answer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answer }),
+  })
+}
