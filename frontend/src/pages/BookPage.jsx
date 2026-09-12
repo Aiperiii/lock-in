@@ -6,6 +6,7 @@ import BookCover from '../components/BookCover'
 import Button from '../components/Button'
 import MasteryRing from '../components/MasteryRing'
 import MonoLabel from '../components/MonoLabel'
+import QuizModal from '../components/QuizModal'
 
 const LESSON_BADGE = {
   mastered: { tone: 'mastered', label: 'Mastered' },
@@ -96,6 +97,11 @@ function ChapterRow({ chapter, expanded, onToggle }) {
           {String(chapter.number).padStart(2, '0')}
         </span>
         <span className="min-w-0 flex-1 truncate font-serif text-lg text-ink">{chapter.title}</span>
+        {chapter.quiz_id && (
+          <Badge tone="mastered" className="hidden sm:inline-flex">
+            End of chapter quiz
+          </Badge>
+        )}
         <MonoLabel tone="faint" className="hidden sm:inline">
           {mastered}/{total} mastered
         </MonoLabel>
@@ -127,6 +133,7 @@ export default function BookPage() {
   const [book, setBook] = useState(null)
   const [error, setError] = useState(null)
   const [expandedIds, setExpandedIds] = useState(null)
+  const [quizModalOpen, setQuizModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -177,10 +184,12 @@ export default function BookPage() {
           Library
         </Link>
         <h1 className="min-w-0 flex-1 truncate font-serif text-sm text-ink-muted">{book.title}</h1>
-        <Button variant="secondary" className="shrink-0">
+        <Button variant="secondary" className="shrink-0" onClick={() => setQuizModalOpen(true)}>
           Generate quiz
         </Button>
       </header>
+
+      {quizModalOpen && <QuizModal book={book} onClose={() => setQuizModalOpen(false)} />}
 
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col gap-6 rounded-xl border border-border bg-green-bg p-8 sm:flex-row sm:items-center">
@@ -211,6 +220,15 @@ export default function BookPage() {
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-10">
+        {book.final_quiz_id && (
+          <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-border bg-green-bg px-6 py-4">
+            <div>
+              <MonoLabel tone="green">End of course quiz</MonoLabel>
+              <p className="mt-1 font-serif text-lg text-ink">Your course review quiz is ready</p>
+            </div>
+            <Badge tone="mastered">Ready</Badge>
+          </div>
+        )}
         {book.chapters.map((chapter) => (
           <ChapterRow
             key={chapter.id}

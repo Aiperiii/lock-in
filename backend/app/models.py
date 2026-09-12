@@ -42,10 +42,14 @@ class Book(Base):
     status: Mapped[str] = mapped_column(String, nullable=False)  # processing | ready | failed
     processing_stage: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
+    # Set once every chapter in the book is complete — see
+    # app/pipeline/auto_quiz.py. Not in docs/SCHEMA.md, same extension as Quiz.
+    final_quiz_id: Mapped[str | None] = mapped_column(ForeignKey("quizzes.id"), nullable=True)
 
     chapters: Mapped[list["Chapter"]] = relationship(
         back_populates="book", cascade="all, delete-orphan", order_by="Chapter.number"
     )
+    final_quiz: Mapped["Quiz | None"] = relationship(foreign_keys=[final_quiz_id])
 
 
 class Chapter(Base):
@@ -56,11 +60,15 @@ class Chapter(Base):
     number: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(String, nullable=False)
     summary: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Set once every lesson in the chapter is done or mastered — see
+    # app/pipeline/auto_quiz.py. Not in docs/SCHEMA.md, same extension as Quiz.
+    quiz_id: Mapped[str | None] = mapped_column(ForeignKey("quizzes.id"), nullable=True)
 
     book: Mapped["Book"] = relationship(back_populates="chapters")
     lessons: Mapped[list["Lesson"]] = relationship(
         back_populates="chapter", cascade="all, delete-orphan", order_by="Lesson.number"
     )
+    quiz: Mapped["Quiz | None"] = relationship(foreign_keys=[quiz_id])
 
 
 class Lesson(Base):
@@ -190,7 +198,10 @@ class Quiz(Base):
     difficulty: Mapped[str] = mapped_column(String, nullable=False, default="mixed")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
 
-    book: Mapped["Book"] = relationship()
+    # explicit foreign_keys: books.final_quiz_id also points at quizzes.id, so
+    # there are two FK paths between these tables and SQLAlchemy can't infer
+    # which one this relationship means without help.
+    book: Mapped["Book"] = relationship(foreign_keys=[book_id])
     quiz_questions: Mapped[list["QuizQuestion"]] = relationship(
         back_populates="quiz", cascade="all, delete-orphan", order_by="QuizQuestion.order"
     )

@@ -123,8 +123,21 @@ def _generate_fresh_questions(
 
 
 def _chapter_text(chapter: m.Chapter) -> str:
+    """The pipeline writes a sidecar text file per chapter (app/pipeline/
+    chapters.py) for any book it actually processed. A seeded or otherwise
+    manually-inserted book has no such file, so this falls back to the
+    chapter's own lesson prose (Block rows) — thinner, but real content
+    rather than an empty prompt that leaves the model nothing to ground on."""
     path = UPLOADS_DIR / f"{chapter.id}.txt"
-    return path.read_text(encoding="utf-8") if path.exists() else ""
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    prose = [
+        block.content
+        for lesson in chapter.lessons
+        for block in lesson.blocks
+        if block.kind == "prose" and block.content
+    ]
+    return "\n\n".join(prose)
 
 
 def serialize_quiz(db: Session, quiz: m.Quiz) -> dict:

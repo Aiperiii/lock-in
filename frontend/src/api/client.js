@@ -52,3 +52,11 @@ export function answerQuestion(questionId, answer) {
     body: JSON.stringify({ answer }),
   })
 }
+
+export function generateQuiz({ bookId, chapterIds, difficulty, count }) {
+  return request('/quizzes/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ book_id: bookId, chapter_ids: chapterIds, difficulty, count }),
+  })
+}

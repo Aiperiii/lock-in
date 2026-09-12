@@ -60,12 +60,14 @@ def get_book(book_id: str, db: Session = Depends(get_db)):
         "cover_seed": book.cover_seed,
         "status": book.status,
         "progress_percent": book_progress_percent(db, book),
+        "final_quiz_id": book.final_quiz_id,
         "chapters": [
             {
                 "id": chapter.id,
                 "number": chapter.number,
                 "title": chapter.title,
                 "summary": chapter.summary,
+                "quiz_id": chapter.quiz_id,
                 "lessons": [
                     {
                         "id": lesson.id,

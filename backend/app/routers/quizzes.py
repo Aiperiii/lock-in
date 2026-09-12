@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app import models as m
 from app import scoring
 from app.database import get_db
+from app.pipeline.auto_quiz import maybe_trigger_auto_quiz
 from app.quizzes import generate_quiz, serialize_quiz
 
 router = APIRouter(prefix="/api/quizzes", tags=["quizzes"])
@@ -52,7 +53,12 @@ class SubmitQuizRequest(BaseModel):
 
 
 @router.post("/{quiz_id}/submit")
-def submit_quiz(quiz_id: str, payload: SubmitQuizRequest, db: Session = Depends(get_db)):
+def submit_quiz(
+    quiz_id: str,
+    payload: SubmitQuizRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """Grades each answer through the same write path a lesson question uses
     (app/scoring.answer_question) and returns an aggregate score alongside
     the per-question results, in the same shape POST /api/questions/{id}/answer
@@ -65,6 +71,7 @@ def submit_quiz(quiz_id: str, payload: SubmitQuizRequest, db: Session = Depends(
     quiz_question_ids = {qq.question_id for qq in quiz.quiz_questions}
 
     results = []
+    answered_questions = []
     for entry in payload.answers:
         if entry.question_id not in quiz_question_ids:
             raise HTTPException(
@@ -77,8 +84,16 @@ def submit_quiz(quiz_id: str, payload: SubmitQuizRequest, db: Session = Depends(
         except ValueError as e:
             db.rollback()
             raise HTTPException(status_code=400, detail=str(e))
+        answered_questions.append(question)
 
     db.commit()
+
+    # One shared `queued` set so two questions in this same submission that
+    # both complete the same chapter (or book) don't each schedule their own
+    # generation call.
+    queued: set[str] = set()
+    for question in answered_questions:
+        maybe_trigger_auto_quiz(db, background_tasks, question, queued)
 
     total = len(results)
     correct = sum(1 for r in results if r["is_correct"])
