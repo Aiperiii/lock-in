@@ -10,7 +10,7 @@ their own say-so, and both are handled generically:
 
 1. The model's start_marker can come back not-quite-verbatim (PDF extraction
    introduces drop-cap word splits, hyphenation, odd whitespace), so locating
-   it uses three progressively fuzzier strategies (see _find_occurrences).
+   it uses three progressively fuzzier strategies (see app/pipeline/matching.py).
 2. A chapter's title/opening text often also appears in the table of contents
    and in running headers throughout the chapter body, so the same marker can
    match many places. The earliest match that is followed by real prose
@@ -29,7 +29,6 @@ telling real chapters from numbered subsections) rather than the default
 high-volume tier — see app/ai/client.py.
 """
 
-import difflib
 import logging
 import re
 import time
@@ -41,6 +40,8 @@ from app.ai.client import MODEL_QUALITY, GeminiUnavailable, generate_json
 from app.ai.prompts import chapter_detection_prompt
 from app.database import SessionLocal
 from app.paths import UPLOADS_DIR
+from app.pipeline.jsonutil import coerce_list
+from app.pipeline.matching import find_occurrences
 
 logger = logging.getLogger(__name__)
 
@@ -59,24 +60,11 @@ TOC_SEARCH_CHARS = 150_000
 TOC_EXCERPT_CHARS = 4_000
 PROSE_WINDOW_CHARS = 600
 PROSE_THRESHOLD = 0.0
-FUZZY_STRIDE = 15
-FUZZY_THRESHOLD = 0.6
-FUZZY_MARGIN = 10  # extra slack past marker length, to absorb a stray inserted
-# character (e.g. a drop-cap line break) without the match window growing so
-# generous it plateaus across many nearby offsets — see _fuzzy_find.
 
 _TOC_PHRASE_RE = re.compile(r"table of contents", re.IGNORECASE)
 _TOC_HEADING_LINE_RE = re.compile(r"^[ \t]*contents[ \t]*$", re.IGNORECASE | re.MULTILINE)
 _DOT_LEADER_RE = re.compile(r"(?:\.[ \t]?){5,}")  # ". . . . ." style leaders, spaced or not
 _WORD_RE = re.compile(r"[A-Za-z]{3,}")
-
-# 1:1 character substitutions only, so offsets never shift.
-_CHAR_FOLD = str.maketrans(
-    {
-        "‘": "'", "’": "'", "“": '"', "”": '"',
-        "–": "-", "—": "-", " ": " ",
-    }
-)
 
 
 def detect_chapters_for_book(book_id: str) -> None:
@@ -96,7 +84,7 @@ def detect_chapters_for_book(book_id: str) -> None:
         if book is None:
             return
         try:
-            _run(db, book)
+            run_for_book(db, book)
         except Exception as exc:
             db.rollback()
             book = db.get(m.Book, book_id)
@@ -107,7 +95,7 @@ def detect_chapters_for_book(book_id: str) -> None:
         db.close()
 
 
-def _run(db: Session, book: m.Book) -> None:
+def run_for_book(db: Session, book: m.Book) -> None:
     full_text = (UPLOADS_DIR / f"{book.id}.txt").read_text(encoding="utf-8")
 
     book.processing_stage = "Detecting chapters"
@@ -213,23 +201,13 @@ def _ask_gemini(window: str) -> list[dict]:
     except Exception:
         logger.warning("chapter detection: generate_json raised", exc_info=True)
         return []
-    entries = _coerce_entries(raw)
+    entries = coerce_list(raw)
     if not entries:
         # generate_json already logs the raw response text; this makes clear
         # *why* nothing came of it — an empty/malformed JSON shape rather than
         # a swallowed exception.
         logger.warning("chapter detection: parsed JSON had no usable chapter entries: %r", raw)
     return entries
-
-
-def _coerce_entries(raw) -> list[dict]:
-    if isinstance(raw, list):
-        return [e for e in raw if isinstance(e, dict)]
-    if isinstance(raw, dict):
-        for value in raw.values():
-            if isinstance(value, list):
-                return [e for e in value if isinstance(e, dict)]
-    return []
 
 
 def _first_window(full_text: str) -> str:
@@ -261,7 +239,7 @@ def _pick_body_offset(marker: str, full_text: str, search_start: int) -> int | N
     earliest one followed by real prose rather than more TOC/heading matter.
     Falls back to the first occurrence at all if none clearly look like prose
     (better to place the chapter a little off than to drop it)."""
-    offsets = _find_occurrences(marker, full_text, search_start)
+    offsets = find_occurrences(marker, full_text, search_start)
     if not offsets:
         return None
     for offset in offsets:
@@ -291,66 +269,3 @@ def _prose_score(window: str) -> float:
     )
 
 
-def _find_occurrences(marker: str, haystack: str, start: int) -> list[int]:
-    """All offsets (ascending, >= start) where `marker` approximately occurs,
-    trying progressively fuzzier strategies until one finds something."""
-    region = haystack[start:]
-
-    pattern = _tolerant_pattern(marker)
-    hits = [start + mo.start() for mo in pattern.finditer(region)]
-    if hits:
-        return hits
-
-    folded_pattern = _tolerant_pattern(marker.translate(_CHAR_FOLD))
-    hits = [start + mo.start() for mo in folded_pattern.finditer(region.translate(_CHAR_FOLD))]
-    if hits:
-        return hits
-
-    fuzzy = _fuzzy_find(marker.translate(_CHAR_FOLD), region.translate(_CHAR_FOLD))
-    return [start + fuzzy] if fuzzy is not None else []
-
-
-def _tolerant_pattern(marker: str) -> re.Pattern:
-    """A regex matching `marker`'s words in order with flexible whitespace
-    between them — tolerates line-wrap differences without any fuzziness."""
-    words = marker.split()
-    return re.compile(r"\s+".join(re.escape(word) for word in words))
-
-
-def _fuzzy_find(marker: str, region: str) -> int | None:
-    """Last-resort approximate search: a strided coarse scan (cheap) followed
-    by a local refinement around the best candidate. Bounded cost even across
-    a multi-million-character book, since the stride keeps the coarse pass
-    linear in the region size regardless of marker length.
-
-    Ties prefer the LATEST candidate position, not the first: a match window
-    generous enough to contain the whole marker scores identically for every
-    position that still fully contains it, and the least-slack (latest) one
-    is the one actually aligned with the marker's start rather than including
-    a few extra characters of whatever precedes it.
-    """
-    n = len(marker)
-    if n == 0 or len(region) < n:
-        return None
-
-    matcher = difflib.SequenceMatcher(None)
-    matcher.set_seq2(marker)
-
-    best_pos, best_ratio = None, -1.0
-    for pos in range(0, len(region) - n + 1, FUZZY_STRIDE):
-        matcher.set_seq1(region[pos : pos + n + FUZZY_MARGIN])
-        ratio = matcher.quick_ratio()
-        if ratio >= best_ratio:
-            best_pos, best_ratio = pos, ratio
-    if best_pos is None:
-        return None
-
-    refine_lo = max(0, best_pos - FUZZY_STRIDE)
-    refine_hi = min(len(region) - n, best_pos + FUZZY_STRIDE)
-    best_local_pos, best_local_ratio = best_pos, -1.0
-    for pos in range(refine_lo, refine_hi + 1):
-        ratio = difflib.SequenceMatcher(None, region[pos : pos + n + FUZZY_MARGIN], marker).ratio()
-        if ratio >= best_local_ratio:
-            best_local_pos, best_local_ratio = pos, ratio
-
-    return best_local_pos if best_local_ratio >= FUZZY_THRESHOLD else None

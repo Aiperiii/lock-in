@@ -26,3 +26,73 @@ Rules:
 
 TEXT:
 {text}"""
+
+
+def lesson_splitting_prompt(chapter_title: str, text: str) -> str:
+    """docs/PROMPTS.md section 2. `text` is one chapter's full text."""
+    return f"""Split this chapter into lessons a student can complete in one sitting
+(8-20 minutes each).
+
+Return ONLY JSON:
+[{{"number": 1, "title": "...", "kind": "reading"|"practice",
+  "concept_tags": ["kebab-case-concept"],
+  "start_marker": "first ~10 words, verbatim"}}]
+
+Rules:
+- Each lesson covers ONE coherent idea. A lesson that needs "and" in its title is
+  probably two lessons.
+- kind is "practice" when the segment is mostly exercises rather than exposition.
+- 3-6 lessons per chapter is typical.
+- Titles should read like a good textbook's section headings, not like clickbait.
+
+CHAPTER: {chapter_title}
+TEXT: {text}"""
+
+
+def block_generation_prompt(lesson_title: str, text: str) -> str:
+    """docs/PROMPTS.md section 3 — the call that defines the product."""
+    return f"""Turn this lesson text into an interleaved reading experience: prose broken into
+short passages, with comprehension questions placed at the moments a concept has
+just landed.
+
+Return ONLY JSON:
+{{
+ "blocks": [
+   {{"kind": "prose", "content": "markdown, 2-4 sentences"}},
+   {{"kind": "question", "question": {{
+      "type": "mcq",
+      "prompt": "...",
+      "options": ["...","...","...","..."],
+      "correct_index": 0,
+      "explanation": "why this is right, 1-2 sentences",
+      "concept_tag": "kebab-case",
+      "difficulty": "easy"|"medium"|"hard",
+      "source": "book"|"ai"
+   }}}}
+ ]
+}}
+
+Open-response questions use:
+  {{"type":"open","prompt":"...","hint":"italic nudge, phrased as a question",
+   "model_answer":"what a full-credit answer contains",
+   "explanation":"...","concept_tag":"...","difficulty":"...","source":"..."}}
+
+Rules for prose:
+- Rewrite for clarity but keep the book's technical content exactly. Never add
+  claims the source does not make.
+- 2-4 sentences per prose block. Long walls defeat the point.
+- Preserve notation, formulas, and examples from the source.
+
+Rules for questions:
+- A question comes right after the passage that answers it, never before.
+- Roughly 1 question per 2-3 prose blocks. Do not check trivia; check understanding.
+- If the source text contains its own exercises, USE THEM. Set source to "book" and
+  keep the original wording. Only generate your own to fill gaps, marked "ai".
+- MCQ distractors must be plausible misconceptions a student would actually hold.
+  Never absurd options, never "all of the above".
+- Mix question types: about 70% mcq, 30% open. Open questions are for "explain why"
+  and "in your own words", never for facts with one short answer.
+- Test only what is in this text. Never require outside knowledge.
+
+LESSON: {lesson_title}
+TEXT: {text}"""

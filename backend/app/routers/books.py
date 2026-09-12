@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app import models as m
 from app.database import get_db
 from app.paths import UPLOADS_DIR
-from app.pipeline.chapters import detect_chapters_for_book
+from app.pipeline.pipeline import process_book
 from app.progress import (
     book_last_opened_at,
     book_progress_percent,
@@ -104,7 +104,8 @@ async def upload_book(
 ):
     """Save the PDF, extract its text with pymupdf, and create a Book row in
     `processing` status. Returns immediately — extraction is fast (no AI call),
-    but chapter detection does call Gemini, so it runs as a background task
+    but the rest of the pipeline (chapter detection, lesson splitting, block
+    generation) calls Gemini repeatedly, so it runs as one background task
     kicked off after the response is sent; poll GET /{id}/status to watch it.
     """
     filename = file.filename or "upload.pdf"
@@ -142,7 +143,7 @@ async def upload_book(
     db.add(book)
     db.commit()
 
-    background_tasks.add_task(detect_chapters_for_book, book.id)
+    background_tasks.add_task(process_book, book.id)
 
     return {"book_id": book.id, "status": book.status}
 
