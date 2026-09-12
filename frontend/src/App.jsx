@@ -1,5 +1,10 @@
-// No pages yet — routing and views land in later tasks. This just gives the
-// shared primitives (src/components/) somewhere to be mounted from.
+import { Route, Routes } from 'react-router'
+import LibraryPage from './pages/LibraryPage'
+
 export default function App() {
-  return null
+  return (
+    <Routes>
+      <Route path="/" element={<LibraryPage />} />
+    </Routes>
+  )
 }

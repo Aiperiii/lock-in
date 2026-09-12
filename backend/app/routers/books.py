@@ -10,6 +10,7 @@ from app import models as m
 from app.database import get_db
 from app.paths import UPLOADS_DIR
 from app.pipeline.pipeline import process_book
+from app.pipeline.titles import clean_title_basic
 from app.progress import (
     book_last_opened_at,
     book_progress_percent,
@@ -133,7 +134,7 @@ async def upload_book(
 
     book = m.Book(
         id=book_id,
-        title=Path(filename).stem,
+        title=clean_title_basic(Path(filename).stem),
         author=None,
         source_filename=filename,
         cover_seed=random.randint(1, 999_999),

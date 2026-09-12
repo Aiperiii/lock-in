@@ -13,7 +13,7 @@ import logging
 
 from app import models as m
 from app.database import SessionLocal
-from app.pipeline import blocks, chapters, lessons
+from app.pipeline import blocks, chapters, lessons, titles
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,15 @@ def process_book(book_id: str) -> None:
         if book is None:
             return
         try:
+            try:
+                titles.refine_if_messy(db, book)
+            except Exception:
+                # A better title is a nice-to-have, not a core pipeline
+                # stage — the cleaned-filename title already in place is a
+                # perfectly fine fallback, so this never aborts the book.
+                logger.warning("title refinement failed for book %s", book_id, exc_info=True)
+                db.rollback()
+
             chapters.run_for_book(db, book)
             for chapter in book.chapters:
                 lessons.run_for_chapter(db, chapter)
