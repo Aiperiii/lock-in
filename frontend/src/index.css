@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+
+/* Design system tokens from CLAUDE.md, defined as Tailwind v4 theme tokens.
+   Each --color-* here generates the matching bg-/text-/border-* utilities
+   (e.g. --color-ink-muted -> text-ink-muted), and the three --font-* entries
+   back the existing font-serif/font-sans/font-mono utilities. */
+@theme {
+  --color-cream: #faf9f5;
+  --color-card: #ffffff;
+  --color-ink: #1c1b19;
+  --color-ink-muted: #6b6a65;
+  --color-ink-faint: #9c9a93;
+  --color-border: #e8e6df;
+  --color-green: #3d7355;
+  --color-green-bg: #edf3ef;
+  --color-indigo: #5b5bd6;
+  --color-orange: #c2703d;
+  --color-amber-bg: #fbf3e4;
+  --color-amber-text: #8a5a18;
+
+  --font-serif: 'Fraunces', serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+  }
+}
