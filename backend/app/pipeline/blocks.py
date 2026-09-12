@@ -28,12 +28,9 @@ from app.database import SessionLocal
 from app.paths import UPLOADS_DIR
 from app.pipeline.jsonutil import coerce_list
 from app.pipeline.lessons import estimate_minutes
+from app.pipeline.validate import validate_question as _validate_question
 
 logger = logging.getLogger(__name__)
-
-VALID_QUESTION_TYPES = ("mcq", "open")
-VALID_DIFFICULTIES = ("easy", "medium", "hard")
-VALID_SOURCES = ("book", "ai", "hybrid")
 
 
 def generate_blocks_for_lesson(lesson_id: str) -> None:
@@ -127,55 +124,6 @@ def _generate_blocks(text: str, lesson_title: str) -> list[dict]:
     if not result:
         return [{"kind": "prose", "content": text}]
     return result
-
-
-def _validate_question(q) -> dict | None:
-    """Every field the Question model requires NOT NULL is checked here —
-    returns None (drop the block) rather than let a DB IntegrityError abort
-    the whole lesson over one malformed question."""
-    if not isinstance(q, dict):
-        return None
-
-    q_type = q.get("type")
-    prompt = (q.get("prompt") or "").strip()
-    explanation = (q.get("explanation") or "").strip()
-    concept_tag = (q.get("concept_tag") or "").strip()
-    if q_type not in VALID_QUESTION_TYPES or not (prompt and explanation and concept_tag):
-        return None
-
-    difficulty = q.get("difficulty") if q.get("difficulty") in VALID_DIFFICULTIES else "medium"
-    source = q.get("source") if q.get("source") in VALID_SOURCES else "ai"
-
-    if q_type == "mcq":
-        options = q.get("options")
-        correct_index = q.get("correct_index")
-        if not (
-            isinstance(options, list)
-            and len(options) >= 2
-            and isinstance(correct_index, int)
-            and 0 <= correct_index < len(options)
-        ):
-            return None
-        hint, model_answer = None, None
-    else:  # open
-        model_answer = (q.get("model_answer") or "").strip()
-        if not model_answer:
-            return None
-        options, correct_index = None, None
-        hint = q.get("hint")
-
-    return {
-        "type": q_type,
-        "prompt": prompt,
-        "options": options,
-        "correct_index": correct_index,
-        "hint": hint,
-        "explanation": explanation,
-        "model_answer": model_answer,
-        "concept_tag": concept_tag,
-        "difficulty": difficulty,
-        "source": source,
-    }
 
 
 def _ask_gemini(text: str, lesson_title: str) -> list[dict]:

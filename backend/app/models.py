@@ -103,7 +103,11 @@ class Question(Base):
     __tablename__ = "questions"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
-    lesson_id: Mapped[str] = mapped_column(ForeignKey("lessons.id"), nullable=False)
+    # Nullable so a quiz-only question (generated to top up a quiz, per
+    # docs/API.md's "top up with freshly generated ones") can exist without
+    # belonging to any lesson — see app/quizzes.py. Every question created by
+    # the normal lesson pipeline still always sets this.
+    lesson_id: Mapped[str | None] = mapped_column(ForeignKey("lessons.id"), nullable=True)
     type: Mapped[str] = mapped_column(String, nullable=False)  # mcq | open
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
     options: Mapped[list | None] = mapped_column(JSON, nullable=True)
@@ -170,6 +174,43 @@ class Streak(Base):
     current_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     longest_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_active_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+
+class Quiz(Base):
+    """Not in docs/SCHEMA.md — that doc predates the quiz feature. A quiz is
+    scoped to one book and a subset of its chapters; its questions are a mix
+    of reused lesson questions and freshly generated ones (see
+    app/quizzes.py), referenced through QuizQuestion rather than duplicated."""
+
+    __tablename__ = "quizzes"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    book_id: Mapped[str] = mapped_column(ForeignKey("books.id"), nullable=False)
+    chapter_ids: Mapped[list] = mapped_column(JSON, nullable=False)
+    difficulty: Mapped[str] = mapped_column(String, nullable=False, default="mixed")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, nullable=False)
+
+    book: Mapped["Book"] = relationship()
+    quiz_questions: Mapped[list["QuizQuestion"]] = relationship(
+        back_populates="quiz", cascade="all, delete-orphan", order_by="QuizQuestion.order"
+    )
+
+
+class QuizQuestion(Base):
+    """Join row rather than a copy of Question — a book-sourced question
+    stays the single source of truth (one row, answerable the same way
+    whether reached from its lesson or from a quiz) and a freshly generated
+    one is just a Question with lesson_id null (see Question.lesson_id)."""
+
+    __tablename__ = "quiz_questions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    quiz_id: Mapped[str] = mapped_column(ForeignKey("quizzes.id"), nullable=False)
+    question_id: Mapped[str] = mapped_column(ForeignKey("questions.id"), nullable=False)
+    order: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    quiz: Mapped["Quiz"] = relationship(back_populates="quiz_questions")
+    question: Mapped["Question"] = relationship()
 
 
 class AIConversation(Base):

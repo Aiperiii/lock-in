@@ -3,6 +3,15 @@
 Everything that changes when a student submits an answer lives here: the attempt
 log, the lesson's mastery status, the streak, and the spaced-repetition item.
 Read-side derivations stay in progress.py.
+
+`answer_question()` is the single entry point that ties all of it together —
+it's shared by POST /api/questions/{id}/answer and quiz submission
+(POST /api/quizzes/{id}/submit, app/routers/quizzes.py), so a quiz question is
+graded and tracked exactly like a lesson question: same MCQ check, same AI
+grader for open response, same attempt log, same streak and review
+scheduling. The only thing that doesn't apply to a quiz-only question (one
+generated fresh to top up a quiz, with lesson_id null) is lesson mastery,
+since it doesn't belong to a lesson.
 """
 
 from datetime import timedelta
@@ -11,7 +20,50 @@ from sqlalchemy.orm import Session
 
 from app import models as m
 from app.config import USER_ID
+from app.grading import grade_open_response
 from app.utils import utcnow_naive
+
+
+def _check_mcq(question: m.Question, answer: str) -> bool:
+    """MCQ is graded locally — no AI call, instant. Raises ValueError on a
+    malformed answer; callers translate that to an HTTP 400."""
+    try:
+        chosen = int(answer.strip())
+    except (ValueError, AttributeError):
+        raise ValueError("MCQ answer must be an option index, sent as a string")
+    options = question.options or []
+    if not 0 <= chosen < len(options):
+        raise ValueError(f"Option index {chosen} is out of range for this question")
+    return chosen == question.correct_index
+
+
+def answer_question(db: Session, question: m.Question, answer: str) -> dict:
+    """Grade one answer and apply every downstream effect. Raises ValueError
+    on a malformed MCQ answer; does not commit — the caller commits once it
+    has applied this (and, for a quiz, every other) answer."""
+    if question.type == "mcq":
+        is_correct = _check_mcq(question, answer)
+        feedback = None
+    else:
+        is_correct, feedback = grade_open_response(question, answer)
+
+    attempt = record_attempt(db, question, answer, is_correct, feedback)
+    db.flush()  # so the mastery recount below sees this attempt
+
+    upsert_review_item(db, question, is_correct)
+    lesson_status = recompute_lesson_status(db, question.lesson) if question.lesson_id else None
+    streak_days = update_streak(db)
+
+    return {
+        "question_id": question.id,
+        "is_correct": is_correct,
+        "correct_index": question.correct_index,
+        "explanation": question.explanation,
+        "feedback": feedback,
+        "lesson_status": lesson_status,
+        "streak_days": streak_days,
+        "attempt_number": attempt.attempt_number,
+    }
 
 
 def record_attempt(

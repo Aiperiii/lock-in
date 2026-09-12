@@ -23,7 +23,13 @@ def _lesson_excerpt(question) -> str:
     """The lesson's own prose, concatenated in order, as grounding for the
     grader. Reconstructed from Block rows rather than the pipeline's sidecar
     text files: those don't exist for lessons that were never AI-generated
-    (e.g. the seeded demo book), while Block rows always do."""
+    (e.g. the seeded demo book), while Block rows always do.
+
+    A quiz-only question (see app/quizzes.py) has no lesson at all — its
+    model_answer is the grader's only rubric then, which the prompt already
+    treats as the primary source of truth."""
+    if question.lesson is None:
+        return ""
     blocks = sorted(question.lesson.blocks, key=lambda b: b.order)
     prose = [b.content for b in blocks if b.kind == "prose" and b.content]
     return "\n\n".join(prose)

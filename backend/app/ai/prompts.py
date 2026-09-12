@@ -98,6 +98,55 @@ LESSON: {lesson_title}
 TEXT: {text}"""
 
 
+def quiz_generation_prompt(
+    count: int,
+    difficulty: str,
+    concept_tags: list[str],
+    source_text: str,
+    existing_prompts: list[str],
+) -> str:
+    """POST /api/quizzes/generate's "top up with freshly generated ones" step
+    (docs/API.md) has no dedicated template of its own in docs/PROMPTS.md —
+    this adapts section 6 (memory quiz generation), the closest existing
+    shape: "generate N fresh questions on these concepts, distinct from ones
+    already asked." Returns the same per-question JSON shape as block
+    generation (section 3) so the result validates through the same
+    app/pipeline/validate.py rules.
+    """
+    difficulty_rule = (
+        "Vary difficulty across the set."
+        if difficulty == "mixed"
+        else f'Every question should be "{difficulty}" difficulty.'
+    )
+    seen = "\n".join(f"- {p}" for p in existing_prompts) or "(none yet)"
+    tags = ", ".join(concept_tags) or "(none given — infer from the source text)"
+    return f"""Generate {count} questions testing understanding of these concepts, grounded
+only in the source text below.
+
+Return ONLY JSON:
+{{"questions": [
+  {{"type": "mcq", "prompt": "...", "options": ["...","...","...","..."],
+    "correct_index": 0, "explanation": "why this is right, 1-2 sentences",
+    "concept_tag": "kebab-case", "difficulty": "easy"|"medium"|"hard"}},
+  {{"type": "open", "prompt": "...", "hint": "italic nudge, phrased as a question",
+    "model_answer": "what a full-credit answer contains", "explanation": "...",
+    "concept_tag": "kebab-case", "difficulty": "easy"|"medium"|"hard"}}
+]}}
+
+Rules:
+- Test understanding, not trivia recall. Never require outside knowledge — only
+  what the source text supports.
+- Never paraphrase a question that has already been asked (listed below).
+- {difficulty_rule}
+- Mix question types: about 70% mcq, 30% open.
+- MCQ distractors must be plausible misconceptions, never absurd, never "all of
+  the above".
+
+CONCEPTS: {tags}
+SOURCE TEXT: {source_text}
+QUESTIONS ALREADY ASKED: {seen}"""
+
+
 def grading_prompt(question_prompt: str, model_answer: str, lesson_excerpt: str, answer: str) -> str:
     """docs/PROMPTS.md section 4."""
     return f"""Grade a student's free-text answer. Be generous about wording, strict about
