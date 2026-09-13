@@ -116,10 +116,13 @@ class Question(Base):
     # belonging to any lesson — see app/quizzes.py. Every question created by
     # the normal lesson pipeline still always sets this.
     lesson_id: Mapped[str | None] = mapped_column(ForeignKey("lessons.id"), nullable=True)
-    type: Mapped[str] = mapped_column(String, nullable=False)  # mcq | open
+    type: Mapped[str] = mapped_column(String, nullable=False)  # mcq | open | matching
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    # mcq: list[str] options. matching: list[{"left","right"}] pairs, order IS
+    # the correct pairing (see app/progress.py — never sent to the client in
+    # this order). Unused for open.
     options: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    correct_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    correct_index: Mapped[int | None] = mapped_column(Integer, nullable=True)  # mcq only
     hint: Mapped[str | None] = mapped_column(String, nullable=True)
     explanation: Mapped[str] = mapped_column(Text, nullable=False)
     model_answer: Mapped[str | None] = mapped_column(Text, nullable=True)

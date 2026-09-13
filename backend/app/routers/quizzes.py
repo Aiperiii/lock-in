@@ -45,7 +45,8 @@ def get_quiz(quiz_id: str, db: Session = Depends(get_db)):
 
 class QuizAnswerEntry(BaseModel):
     question_id: str
-    answer: str
+    # str for mcq/open; {left_id: right_id} for matching.
+    answer: str | dict[str, str]
 
 
 class SubmitQuizRequest(BaseModel):

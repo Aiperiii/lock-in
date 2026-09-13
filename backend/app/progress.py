@@ -3,6 +3,8 @@ nothing here is cached or stored (see docs/SCHEMA.md: "Percentages are computed
 from these rows, never stored, so nothing goes stale").
 """
 
+import json
+import random
 from datetime import datetime
 
 from sqlalchemy import func
@@ -68,14 +70,37 @@ def latest_attempt(db: Session, question_id: str) -> m.QuestionAttempt | None:
     )
 
 
+def _matching_fields(question: m.Question, reveal: bool) -> dict:
+    """left/right items for a matching question. The right side is shuffled
+    on every call — nothing persists a shown order, so a reload shuffles
+    again, same as a fresh MCQ option order would carry no meaning either.
+    Each item keeps the id of its canonical pair index (its position in
+    Question.options), which IS the correct pairing: left_id == right_id.
+    That's never sent as such — `correct_pairs` stays null until `reveal` —
+    simply because the shuffle already hides it, not because anything else
+    is withheld."""
+    pairs = question.options or []
+    left_items = [{"id": str(i), "text": pair.get("left")} for i, pair in enumerate(pairs)]
+    right_items = [{"id": str(i), "text": pair.get("right")} for i, pair in enumerate(pairs)]
+    random.shuffle(right_items)
+    return {
+        "left_items": left_items,
+        "right_items": right_items,
+        "correct_pairs": {str(i): str(i) for i in range(len(pairs))} if reveal else None,
+    }
+
+
+_MATCHING_NULL_FIELDS = {"left_items": None, "right_items": None, "correct_pairs": None}
+
+
 def serialize_question_redacted(question: m.Question) -> dict:
     """Question shape for contexts with no per-attempt awareness (book detail):
     the answer-revealing fields are always blanked out."""
-    return {
+    base = {
         "id": question.id,
         "type": question.type,
         "prompt": question.prompt,
-        "options": question.options,
+        "options": None if question.type == "matching" else question.options,
         "correct_index": None,
         "hint": question.hint,
         "explanation": None,
@@ -83,24 +108,30 @@ def serialize_question_redacted(question: m.Question) -> dict:
         "concept_tag": question.concept_tag,
         "difficulty": question.difficulty,
         "source": question.source,
+        **_MATCHING_NULL_FIELDS,
     }
+    if question.type == "matching":
+        base.update(_matching_fields(question, reveal=False))
+    return base
 
 
 def serialize_question_for_lesson(db: Session, question: m.Question) -> dict:
-    """Question shape for the lesson reading view.
+    """Question shape for the lesson reading view (and the quiz page, which
+    reuses it — see app/quizzes.serialize_quiz).
 
-    correct_index, explanation and model_answer carry real values only once the
-    question has an attempt — per docs/API.md they are 'never sent to the client
-    before an answer is submitted'. The keys are always present and null until
-    then, so the client renders against one stable shape.
+    correct_index/explanation/model_answer (mcq, open) and correct_pairs
+    (matching) carry real values only once the question has an attempt — per
+    docs/API.md they are 'never sent to the client before an answer is
+    submitted'. The keys are always present and null until then, so the
+    client renders against one stable shape regardless of question type.
     """
     attempt = latest_attempt(db, question.id)
     answered = attempt is not None
-    return {
+    base = {
         "id": question.id,
         "type": question.type,
         "prompt": question.prompt,
-        "options": question.options,
+        "options": None if question.type == "matching" else question.options,
         "hint": question.hint,
         "concept_tag": question.concept_tag,
         "difficulty": question.difficulty,
@@ -108,8 +139,9 @@ def serialize_question_for_lesson(db: Session, question: m.Question) -> dict:
         "correct_index": question.correct_index if answered else None,
         "explanation": question.explanation if answered else None,
         "model_answer": question.model_answer if answered else None,
+        **_MATCHING_NULL_FIELDS,
         "user_attempt": {
-            "answer": attempt.answer,
+            "answer": json.loads(attempt.answer) if question.type == "matching" else attempt.answer,
             "is_correct": attempt.is_correct,
             "feedback": attempt.feedback,
             "attempt_number": attempt.attempt_number,
@@ -118,3 +150,6 @@ def serialize_question_for_lesson(db: Session, question: m.Question) -> dict:
         if answered
         else None,
     }
+    if question.type == "matching":
+        base.update(_matching_fields(question, reveal=answered))
+    return base

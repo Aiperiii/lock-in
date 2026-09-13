@@ -79,14 +79,21 @@ Open-response questions use:
    "model_answer":"what a full-credit answer contains",
    "explanation":"...","concept_tag":"...","difficulty":"...","source":"..."}}
 
+Matching questions (section 8) are a third, occasional option:
+  {{"type":"matching","prompt":"...","pairs":[{{"left":"...","right":"..."}}],
+   "explanation":"...","concept_tag":"...","difficulty":"...","source":"..."}}
+
 Rules for prose:
-- Default to the book's own sentences, verbatim or near-verbatim. This is not a
-  paraphrase-everything pass — the student should feel they are reading the real
-  book, not a summary written by an AI.
-- Only rephrase a specific sentence when it is genuinely unclear or overly dense
-  out of context (e.g. it leans on something several pages earlier). Even then,
-  stay close to the original wording and terminology — a light clarification, not
-  a rewrite.
+- Copy the book's sentences verbatim wherever possible. Do not summarize, do not
+  condense multiple paragraphs into one, do not shorten. Only change a sentence
+  if it is genuinely confusing on its own, and even then keep it as close to the
+  original wording as possible — a light edit, not a rewrite. If in doubt, prefer
+  the original text unchanged.
+- Cover the source text in order, start to end. Do not skip a paragraph because
+  it seems like scene-setting or a restatement — every sentence in the source
+  becomes a prose block (or part of one) somewhere, and blocks appear in the
+  same sequence the source has them. Skipping ahead to a later passage and
+  circling back is never correct, even if the result reads more smoothly.
 - Never add claims the source does not make.
 - 2-4 sentences per prose block. Long walls defeat the point — split with the
   book's own paragraph and sentence breaks, don't compress them into a summary.
@@ -130,7 +137,9 @@ Rules for questions:
   - "apply this to a new example" — pose a scenario not found in the source text
     and ask the student to apply the concept to it.
   - "compare/contrast" two related concepts from the text.
-- Mix question types: about 70% mcq, 30% open.
+- Mix question types: about 65% mcq, 25% open, and occasionally (not every
+  lesson) a matching question (section 8) when 4-6 short paired facts genuinely
+  fit the material — never force one in.
 - Test only what is in this text. Never require outside knowledge.
 
 LESSON: {lesson_title}
@@ -169,6 +178,9 @@ Return ONLY JSON:
     "concept_tag": "kebab-case", "difficulty": "easy"|"medium"|"hard"}},
   {{"type": "open", "prompt": "...", "hint": "italic nudge, phrased as a question",
     "model_answer": "what a full-credit answer contains", "explanation": "...",
+    "concept_tag": "kebab-case", "difficulty": "easy"|"medium"|"hard"}},
+  {{"type": "matching", "prompt": "Match each term to its definition.",
+    "pairs": [{{"left": "...", "right": "..."}}], "explanation": "...",
     "concept_tag": "kebab-case", "difficulty": "easy"|"medium"|"hard"}}
 ]}}
 
@@ -189,7 +201,11 @@ Rules:
   strawmen, never "all of the above".
 - Mix open-response styles: "explain why" (keep some), "apply this to a new
   example" not in the source text, and "compare/contrast" two related concepts.
-- Mix question types: about 70% mcq, 30% open.
+- A matching question (section 8: 4-6 short left/right pairs, each under 8
+  words) is a fine option when the material has genuine paired facts —
+  term-to-definition, concept-to-example, equation-to-result — but don't
+  force one in if it doesn't fit.
+- Mix question types: about 65% mcq, 25% open, matching only occasionally.
 
 CONCEPTS: {tags}
 SOURCE TEXT: {source_text}

@@ -109,7 +109,7 @@ export default function LibraryPage() {
           </section>
 
           <section className="mx-auto max-w-[1400px] px-6 pb-10">
-            <h2 className="mb-4 font-mono text-xs uppercase tracking-wide text-ink-faint">Library</h2>
+            <h2 className="mb-4 font-mono text-sm uppercase tracking-wide text-ink-faint">Library</h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 md:grid-cols-4">
               {books.map((book) => (
                 <Link key={book.id} to={`/books/${book.id}`} className="min-w-0">

@@ -98,12 +98,14 @@ badges, no purple-on-white SaaS look.
 --green-bg    #EDF3EF   green tint fills
 --indigo      #5B5BD6   MCQ label only
 --orange      #C2703D   OPEN RESPONSE label only
+--teal        #2B8C82   MATCHING label and match-highlight only
+--teal-bg     #E7F2F0   teal tint fill (matched-pair highlight)
 --amber-bg    #FBF3E4   partial-progress badge fill
 --amber-text  #8A5A18   partial-progress badge text
 ```
 
-Indigo and orange are **question-type signals only**. Never use them for buttons,
-links, or decoration.
+Indigo, orange, and teal are **question-type signals only**. Never use them for
+buttons, links, or decoration.
 
 **Type**
 - Serif (`Fraunces`) — book titles, lesson titles, page headings

@@ -11,7 +11,7 @@ export default function Badge({ tone = 'neutral', className = '', children, ...p
   const toneClasses = TONE_CLASSES[tone] ?? TONE_CLASSES.neutral
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 font-mono text-xs ${toneClasses} ${className}`}
+      className={`inline-flex items-center rounded-md px-2 py-0.5 font-mono text-sm ${toneClasses} ${className}`}
       {...props}
     >
       {children}

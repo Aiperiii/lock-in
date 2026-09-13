@@ -4,6 +4,7 @@ const TONE_CLASSES = {
   green: 'text-green',
   indigo: 'text-indigo',
   orange: 'text-orange',
+  teal: 'text-teal',
 }
 
 const SIZE_CLASSES = {
@@ -12,13 +13,14 @@ const SIZE_CLASSES = {
 }
 
 /** Plain mono-font text for metadata lines, subject tags, and the MCQ/OPEN
- * RESPONSE question-type signals. Indigo and orange are reserved for that
- * question-type use only (CLAUDE.md) — never for buttons, links, or
- * decoration. Text is rendered as given; no forced casing, since sentence
+ * RESPONSE/MATCHING question-type signals. Indigo, orange, and teal are
+ * reserved for that question-type use only (CLAUDE.md) — never for buttons,
+ * links, or decoration. Text is rendered as given; no forced casing, since sentence
  * case applies everywhere except book titles and callers own their copy.
- * `size` defaults to the usual tiny metadata size; 'sm' is for the rarer
- * case a mono label needs to actually be legible as a standalone heading. */
-export default function MonoLabel({ tone = 'faint', size = 'xs', className = '', children, ...props }) {
+ * `size` defaults to 'sm' — small UI text (meta labels, progress captions)
+ * reads too small at the old 'xs' default on a normal screen; 'xs' still
+ * exists for a caller that genuinely wants the tinier size. */
+export default function MonoLabel({ tone = 'faint', size = 'sm', className = '', children, ...props }) {
   const toneClasses = TONE_CLASSES[tone] ?? TONE_CLASSES.faint
   const sizeClasses = SIZE_CLASSES[size] ?? SIZE_CLASSES.xs
   return (

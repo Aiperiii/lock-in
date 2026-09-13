@@ -276,7 +276,7 @@ export default function BookPage() {
       <header className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-2 gap-y-3 px-6 py-5">
         <Link
           to="/"
-          className="flex shrink-0 items-center gap-1.5 font-mono text-xs text-ink-faint transition-colors hover:text-ink-muted"
+          className="flex shrink-0 items-center gap-1.5 font-mono text-sm text-ink-faint transition-colors hover:text-ink-muted"
         >
           <ArrowLeftIcon />
           Library

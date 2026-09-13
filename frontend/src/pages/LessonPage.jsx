@@ -101,7 +101,7 @@ export default function LessonPage() {
     <div className="mx-auto max-w-[1100px] px-6 py-10">
       <Link
         to={`/books/${lesson.book_id}`}
-        className="flex items-center gap-1.5 font-mono text-xs text-ink-faint transition-colors hover:text-ink-muted"
+        className="flex items-center gap-1.5 font-mono text-sm text-ink-faint transition-colors hover:text-ink-muted"
       >
         <ArrowLeftIcon />
         Back to chapter

@@ -14,6 +14,7 @@ generated fresh to top up a quiz, with lesson_id null) is lesson mastery,
 since it doesn't belong to a lesson.
 """
 
+import json
 from datetime import timedelta
 
 from sqlalchemy.orm import Session
@@ -37,27 +38,55 @@ def _check_mcq(question: m.Question, answer: str) -> bool:
     return chosen == question.correct_index
 
 
-def answer_question(db: Session, question: m.Question, answer: str) -> dict:
-    """Grade one answer and apply every downstream effect. Raises ValueError
-    on a malformed MCQ answer; does not commit — the caller commits once it
-    has applied this (and, for a quiz, every other) answer."""
+def _check_matching(question: m.Question, answer: dict) -> bool:
+    """Correct iff every left_id maps to the matching right_id — all or
+    nothing, no partial credit (a hackathon-scope call, not a rule the
+    grading model was asked to weigh in on). left_id == right_id is the
+    correct pairing by construction: both are the pair's index in
+    Question.options (see app/progress._matching_fields)."""
+    if not isinstance(answer, dict):
+        raise ValueError("Matching answer must be an object mapping left_id to right_id")
+    pairs = question.options or []
+    if len(answer) != len(pairs):
+        return False
+    return all(answer.get(str(i)) == str(i) for i in range(len(pairs)))
+
+
+def answer_question(db: Session, question: m.Question, answer) -> dict:
+    """Grade one answer and apply every downstream effect. `answer` is a str
+    for mcq/open, a {left_id: right_id} dict for matching. Raises ValueError
+    on a malformed answer; does not commit — the caller commits once it has
+    applied this (and, for a quiz, every other) answer."""
     if question.type == "mcq":
         is_correct = _check_mcq(question, answer)
+        feedback = None
+    elif question.type == "matching":
+        is_correct = _check_matching(question, answer)
         feedback = None
     else:
         is_correct, feedback = grade_open_response(question, answer)
 
-    attempt = record_attempt(db, question, answer, is_correct, feedback)
+    # QuestionAttempt.answer is a Text column — a matching answer is a dict,
+    # so it's JSON-encoded going in and decoded back out in
+    # app/progress.serialize_question_for_lesson.
+    stored_answer = json.dumps(answer, sort_keys=True) if question.type == "matching" else answer
+
+    attempt = record_attempt(db, question, stored_answer, is_correct, feedback)
     db.flush()  # so the mastery recount below sees this attempt
 
     upsert_review_item(db, question, is_correct)
     lesson_status = recompute_lesson_status(db, question.lesson) if question.lesson_id else None
     streak_days = update_streak(db)
 
+    correct_pairs = None
+    if question.type == "matching":
+        correct_pairs = {str(i): str(i) for i in range(len(question.options or []))}
+
     return {
         "question_id": question.id,
         "is_correct": is_correct,
         "correct_index": question.correct_index,
+        "correct_pairs": correct_pairs,
         "explanation": question.explanation,
         "feedback": feedback,
         "lesson_status": lesson_status,

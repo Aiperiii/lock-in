@@ -11,7 +11,9 @@ router = APIRouter(prefix="/api/questions", tags=["questions"])
 
 
 class AnswerRequest(BaseModel):
-    answer: str
+    # str for mcq/open (an option index, or free text); {left_id: right_id}
+    # for matching.
+    answer: str | dict[str, str]
 
 
 @router.post("/{question_id}/answer")

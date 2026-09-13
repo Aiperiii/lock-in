@@ -17,6 +17,11 @@
   --color-orange: #c2703d;
   --color-amber-bg: #fbf3e4;
   --color-amber-text: #8a5a18;
+  /* Matching questions' type label and match-highlight — a fourth
+     question-type signal alongside indigo (MCQ) and orange (open response),
+     same muted saturation as the rest of the palette. */
+  --color-teal: #2b8c82;
+  --color-teal-bg: #e7f2f0;
 
   --font-serif: 'Fraunces', serif;
   --font-sans: 'Inter', sans-serif;

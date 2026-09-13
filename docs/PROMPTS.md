@@ -95,14 +95,21 @@ Open-response questions use:
    "model_answer":"what a full-credit answer contains",
    "explanation":"...","concept_tag":"...","difficulty":"...","source":"..."}
 
+Matching questions (section 8) are a third, occasional option:
+  {"type":"matching","prompt":"...","pairs":[{"left":"...","right":"..."}],
+   "explanation":"...","concept_tag":"...","difficulty":"...","source":"..."}
+
 Rules for prose:
-- Default to the book's own sentences, verbatim or near-verbatim. This is not a
-  paraphrase-everything pass — the student should feel they are reading the real
-  book, not a summary written by an AI.
-- Only rephrase a specific sentence when it is genuinely unclear or overly dense
-  out of context (e.g. it leans on something several pages earlier). Even then,
-  stay close to the original wording and terminology — a light clarification, not
-  a rewrite.
+- Copy the book's sentences verbatim wherever possible. Do not summarize, do not
+  condense multiple paragraphs into one, do not shorten. Only change a sentence
+  if it is genuinely confusing on its own, and even then keep it as close to the
+  original wording as possible — a light edit, not a rewrite. If in doubt, prefer
+  the original text unchanged.
+- Cover the source text in order, start to end. Do not skip a paragraph because
+  it seems like scene-setting or a restatement — every sentence in the source
+  becomes a prose block (or part of one) somewhere, and blocks appear in the
+  same sequence the source has them. Skipping ahead to a later passage and
+  circling back is never correct, even if the result reads more smoothly.
 - Never add claims the source does not make.
 - 2-4 sentences per prose block. Long walls defeat the point — split with the
   book's own paragraph and sentence breaks, don't compress them into a summary.
@@ -146,7 +153,9 @@ Rules for questions:
   - "apply this to a new example" — pose a scenario not found in the source text
     and ask the student to apply the concept to it.
   - "compare/contrast" two related concepts from the text.
-- Mix question types: about 70% mcq, 30% open.
+- Mix question types: about 65% mcq, 25% open, and occasionally (not every
+  lesson) a matching question (section 8) when 4-6 short paired facts genuinely
+  fit the material — never force one in.
 - Test only what is in this text. Never require outside knowledge.
 
 LESSON: {lesson_title}
@@ -231,6 +240,9 @@ Rules:
   MCQ distractors must be plausible misconceptions, never strawmen.
 - Mix open-response styles: "explain why" (keep some), "apply this to a new
   example" not in the source text, and "compare/contrast" two related concepts.
+- A matching question (section 8) is a fine option when the material has
+  genuine paired facts, but don't force one in if it doesn't fit.
+- Mix question types: about 65% mcq, 25% open, matching only occasionally.
 
 CONCEPTS: {concept_tags}
 SOURCE TEXT: {relevant_excerpts}
@@ -264,3 +276,38 @@ Shortcut buttons prefill the user message:
 - **More examples** → "Give me two concrete examples of this."
 
 They are ordinary messages. No special casing in the endpoint.
+
+---
+
+## 8. Matching question generation
+
+A third question type (alongside mcq and open) that block generation (section 3)
+and quiz generation (section 6) can both produce — a lesson or quiz question can
+be any of the three, matching is one option among them, not the default.
+
+Given the lesson (or chapter) text:
+
+```
+Generate 4-6 pairs testing real relationships from this material — term-to-
+definition, concept-to-example, or equation-to-result, whichever fits the
+content.
+
+Return this question shape:
+{"type": "matching", "prompt": "Match each term to its definition.",
+ "pairs": [{"left": "...", "right": "..."}],
+ "explanation": "...", "concept_tag": "kebab-case",
+ "difficulty": "easy"|"medium"|"hard", "source": "book"|"ai"}
+
+Rules:
+- 4-6 pairs. Left and right sides must each be short (under 8 words) so they
+  render as compact draggable chips, not full sentences.
+- Every pair must test a real relationship the material actually draws — never
+  an arbitrary or trivial association.
+- Don't repeat the same pairing style (e.g. all term-to-definition) for every
+  matching question in a lesson.
+```
+
+Storage and grading: docs/SCHEMA.md's Question.options holds the pairs list;
+its order is the correct pairing (index i's left matches index i's right).
+The server shuffles the right-hand side before sending it to the client and
+never reveals the mapping until answered — see docs/API.md.

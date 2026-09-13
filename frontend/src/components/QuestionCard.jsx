@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { answerQuestion } from '../api/client'
 import Button from './Button'
 import Card from './Card'
@@ -253,6 +253,175 @@ function OpenQuestion({ question, collapsible }) {
   )
 }
 
+/** Click-to-pair matching: click a left chip to arm it (teal ring), then a
+ * right chip to place it there — a right chip already claimed by another
+ * left is freed automatically, so there's never a duplicate assignment to
+ * untangle. No drag-and-drop; ids (not array position) track a pairing, so
+ * the right column's per-fetch shuffle (app/progress._matching_fields)
+ * never invalidates one already made. Grading is all-or-nothing (docs/API.md),
+ * but the per-chip green/amber highlight after an attempt still shows which
+ * specific pairs were right — any further click clears that feedback back to
+ * the plain teal editing view rather than leave it stale against edited pairs. */
+function MatchingQuestion({ question, collapsible }) {
+  const [attempt, setAttempt] = useState(question.user_attempt)
+  const [correctPairs, setCorrectPairs] = useState(question.correct_pairs)
+  const [pairs, setPairs] = useState(question.user_attempt?.answer ?? {}) // {leftId: rightId}
+  const [selectedLeft, setSelectedLeft] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+  const [expanded, setExpanded] = useState(!collapsible || Boolean(question.user_attempt))
+
+  // Mirrors `selectedLeft` for reading inside selectRight — two clicks
+  // dispatched back to back (fast deliberate clicking, a double-tap, a
+  // scripted/automated click) can land before React re-renders between
+  // them, so the `selectedLeft` closed over at render time can be stale.
+  // A ref updates synchronously and is exempt from StrictMode's
+  // double-invocation of state updaters, unlike nesting this read inside
+  // setSelectedLeft's own updater (tried first; StrictMode's deliberate
+  // double-call of that updater in dev then double-fired the setPairs
+  // side effect nested inside it, dropping pairs — updater functions must
+  // stay pure, with no other setState calls inside them).
+  const selectedLeftRef = useRef(null)
+
+  const locked = attempt?.is_correct === true
+  const allPaired = question.left_items.every((item) => pairs[item.id] !== undefined)
+
+  function clearStaleFeedback() {
+    if (attempt) {
+      setAttempt(null)
+      setCorrectPairs(null)
+    }
+  }
+
+  function armLeft(leftId) {
+    selectedLeftRef.current = leftId
+    setSelectedLeft(leftId)
+  }
+
+  function selectLeft(leftId) {
+    if (locked || submitting) return
+    clearStaleFeedback()
+    armLeft(selectedLeftRef.current === leftId ? null : leftId)
+  }
+
+  function selectRight(rightId) {
+    if (locked || submitting) return
+    const currentLeft = selectedLeftRef.current
+    if (currentLeft === null) return
+    clearStaleFeedback()
+    setPairs((prev) => {
+      const next = {}
+      for (const [left, right] of Object.entries(prev)) {
+        if (right !== rightId) next[left] = right
+      }
+      next[currentLeft] = rightId
+      return next
+    })
+    armLeft(null)
+  }
+
+  async function handleSubmit() {
+    if (!allPaired || submitting || locked) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const result = await answerQuestion(question.id, pairs)
+      setAttempt({ answer: pairs, is_correct: result.is_correct })
+      setCorrectPairs(result.correct_pairs)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function leftIdFor(rightId) {
+    return Object.keys(pairs).find((left) => pairs[left] === rightId) ?? null
+  }
+
+  return (
+    <Card>
+      <QuestionHeader
+        tone="teal"
+        label="Matching"
+        prompt={question.prompt}
+        collapsible={collapsible}
+        expanded={expanded}
+        onToggle={() => setExpanded((e) => !e)}
+      />
+
+      {expanded && (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              {question.left_items.map((item) => {
+                const isPaired = pairs[item.id] !== undefined
+                const isSelected = selectedLeft === item.id
+                const isCorrect = attempt && correctPairs && pairs[item.id] === correctPairs[item.id]
+                const stateClasses = attempt
+                  ? isCorrect
+                    ? 'border-green bg-green-bg'
+                    : 'border-amber-text bg-amber-bg'
+                  : isSelected
+                    ? 'border-teal'
+                    : isPaired
+                      ? 'border-teal bg-teal-bg'
+                      : 'border-border hover:border-ink-faint'
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectLeft(item.id)}
+                    disabled={locked || submitting}
+                    className={`rounded-lg border px-3 py-2.5 text-left text-lg text-ink transition-colors ${stateClasses}`}
+                  >
+                    <RichText text={item.text} />
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex flex-col gap-2">
+              {question.right_items.map((item) => {
+                const claimedBy = leftIdFor(item.id)
+                const isCorrect = attempt && correctPairs && claimedBy && correctPairs[claimedBy] === item.id
+                const stateClasses = attempt
+                  ? claimedBy
+                    ? isCorrect
+                      ? 'border-green bg-green-bg'
+                      : 'border-amber-text bg-amber-bg'
+                    : 'border-border'
+                  : claimedBy
+                    ? 'border-teal bg-teal-bg'
+                    : 'border-border hover:border-ink-faint'
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectRight(item.id)}
+                    disabled={locked || submitting || selectedLeft === null}
+                    className={`rounded-lg border px-3 py-2.5 text-left text-lg text-ink transition-colors ${stateClasses}`}
+                  >
+                    <RichText text={item.text} />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {!locked && (
+            <Button variant="primary" className="mt-4" onClick={handleSubmit} disabled={!allPaired || submitting}>
+              {attempt ? 'Try again' : 'Check answers'}
+            </Button>
+          )}
+
+          {attempt && <AttemptResult isCorrect={attempt.is_correct} explanation={question.explanation} />}
+          {error && <p className="mt-2 text-ink-muted">Couldn't submit that — try again.</p>}
+        </>
+      )}
+    </Card>
+  )
+}
+
 /** Shared by the lesson page and the quiz page — a question answers exactly
  * the same way whether it's reached from its lesson or from a quiz (same
  * backend write path, app/scoring.answer_question).
@@ -262,9 +431,11 @@ function OpenQuestion({ question, collapsible }) {
  * so every question there stays fully open, matching how a quiz is meant to
  * be taken as a single continuous set rather than revealed piece by piece. */
 export default function QuestionBlock({ question, collapsible = false }) {
-  return question.type === 'mcq' ? (
-    <McqQuestion question={question} collapsible={collapsible} />
-  ) : (
-    <OpenQuestion question={question} collapsible={collapsible} />
-  )
+  if (question.type === 'mcq') {
+    return <McqQuestion question={question} collapsible={collapsible} />
+  }
+  if (question.type === 'matching') {
+    return <MatchingQuestion question={question} collapsible={collapsible} />
+  }
+  return <OpenQuestion question={question} collapsible={collapsible} />
 }

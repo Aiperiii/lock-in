@@ -67,9 +67,9 @@ definition gets a bordered, tinted box; an example gets a lighter label.
 |---|---|---|
 | id | str PK | |
 | lesson_id | str FK | owning lesson |
-| type | str | `mcq` \| `open` |
+| type | str | `mcq` \| `open` \| `matching` |
 | prompt | text | |
-| options | JSON list[str] nullable | mcq only, 4 items |
+| options | JSON nullable | mcq: list[str], 4 items. matching: list[{left,right}], 4-6 pairs, order is the correct pairing |
 | correct_index | int nullable | mcq only |
 | hint | str nullable | open only, rendered italic |
 | explanation | text | why the answer is right |

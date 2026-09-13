@@ -7,9 +7,11 @@ question in the exact same JSON shape, so the validation rules live in one
 place instead of drifting between two copies.
 """
 
-VALID_QUESTION_TYPES = ("mcq", "open")
+VALID_QUESTION_TYPES = ("mcq", "open", "matching")
 VALID_DIFFICULTIES = ("easy", "medium", "hard")
 VALID_SOURCES = ("book", "ai", "hybrid")
+MIN_MATCHING_PAIRS = 4
+MAX_MATCHING_PAIRS = 6
 
 
 def validate_question(q) -> dict | None:
@@ -40,6 +42,26 @@ def validate_question(q) -> dict | None:
         ):
             return None
         hint, model_answer = None, None
+    elif q_type == "matching":
+        # docs/PROMPTS.md section 8 — stored in Question.options as
+        # [{"left": ..., "right": ...}, ...], same field MCQ uses for its
+        # option list. Index in this list IS the pairing: the client is
+        # never shown it in this order (app/progress.py shuffles the right
+        # side before serving), so there's no separate "correct answer"
+        # field to validate here.
+        pairs = q.get("pairs")
+        if not (isinstance(pairs, list) and MIN_MATCHING_PAIRS <= len(pairs) <= MAX_MATCHING_PAIRS):
+            return None
+        options = []
+        for pair in pairs:
+            if not isinstance(pair, dict):
+                return None
+            left = (pair.get("left") or "").strip()
+            right = (pair.get("right") or "").strip()
+            if not left or not right:
+                return None
+            options.append({"left": left, "right": right})
+        correct_index, hint, model_answer = None, None, None
     else:  # open
         model_answer = (q.get("model_answer") or "").strip()
         if not model_answer:
