@@ -17,6 +17,7 @@ from app.progress import (
     lesson_status,
     serialize_question_redacted,
 )
+from app.quizzes import list_manual_quizzes, quiz_summary
 from app.utils import iso8601
 
 router = APIRouter(prefix="/api/books", tags=["books"])
@@ -60,14 +61,15 @@ def get_book(book_id: str, db: Session = Depends(get_db)):
         "cover_seed": book.cover_seed,
         "status": book.status,
         "progress_percent": book_progress_percent(db, book),
-        "final_quiz_id": book.final_quiz_id,
+        "final_quiz": quiz_summary(db, book.final_quiz_id),
+        "manual_quizzes": list_manual_quizzes(db, book),
         "chapters": [
             {
                 "id": chapter.id,
                 "number": chapter.number,
                 "title": chapter.title,
                 "summary": chapter.summary,
-                "quiz_id": chapter.quiz_id,
+                "quiz": quiz_summary(db, chapter.quiz_id),
                 "lessons": [
                     {
                         "id": lesson.id,
@@ -83,9 +85,10 @@ def get_book(book_id: str, db: Session = Depends(get_db)):
                                 "order": block.order,
                                 "kind": block.kind,
                                 **(
-                                    {"content": block.content}
-                                    if block.kind == "prose"
-                                    else {"question": serialize_question_redacted(block.question)}
+                                    {"question": serialize_question_redacted(block.question)}
+                                    if block.kind == "question"
+                                    # prose, definition, example — all carry markdown content
+                                    else {"content": block.content}
                                 ),
                             }
                             for block in lesson.blocks

@@ -60,3 +60,20 @@ export function generateQuiz({ bookId, chapterIds, difficulty, count }) {
     body: JSON.stringify({ book_id: bookId, chapter_ids: chapterIds, difficulty, count }),
   })
 }
+
+export function getQuiz(id) {
+  return request(`/quizzes/${id}`)
+}
+
+export function askAI({ lessonId, selectedText, message, conversationId }) {
+  return request('/ai/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      lesson_id: lessonId,
+      selected_text: selectedText,
+      message,
+      conversation_id: conversationId,
+    }),
+  })
+}

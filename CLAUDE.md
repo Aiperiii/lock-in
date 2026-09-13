@@ -115,7 +115,9 @@ links, or decoration.
 - Cards: white, 12px radius, 1px border.
 - Lesson prose is `--ink-muted`, not `--ink` — this makes white question cards step
   forward off the page. Deliberate; do not "fix" it.
-- Generous whitespace. Lesson content column maxes at ~680px.
+- Generous whitespace. Lesson/quiz pages max out at ~1100px so they don't sit as
+  a narrow strip on wide screens, but prose paragraphs themselves cap at ~760px
+  for a readable line length. Book/library page containers max out at ~1400px.
 - Sentence case everywhere except book titles.
 - Streaks stay quiet: one mono line under the greeting. Never a badge or a popup.
 

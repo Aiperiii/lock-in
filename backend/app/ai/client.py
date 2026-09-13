@@ -32,6 +32,7 @@ from typing import Callable
 from dotenv import load_dotenv
 from google import genai
 from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -157,12 +158,22 @@ def generate_json(prompt: str, model: str = DEFAULT_MODEL):
         ) from e
 
 
-def generate_text(prompt: str, history: list[dict] | None = None, model: str = DEFAULT_MODEL) -> str:
+def generate_text(
+    prompt: str,
+    history: list[dict] | None = None,
+    system_instruction: str | None = None,
+    model: str = DEFAULT_MODEL,
+) -> str:
     """Conversational call, for things like the select-text AI panel.
 
     `history` is prior turns in chronological order, each
     {"role": "user" | "assistant", "content": str} — matching the AIMessage
-    schema in docs/SCHEMA.md. `prompt` is the new user message. Returns the
+    schema in docs/SCHEMA.md. `prompt` is the new user message.
+    `system_instruction` (e.g. docs/PROMPTS.md section 7's anchoring prompt)
+    is kept out of the visible turn history — it's call-site framing, not a
+    message either party said — and is re-sent on every call in a thread
+    since each call opens a fresh chat session seeded with the stored
+    history rather than holding a live session across requests. Returns the
     model's reply text. Raises GeminiUnavailable if both model tiers are
     rate-limited.
     """
@@ -173,9 +184,14 @@ def generate_text(prompt: str, history: list[dict] | None = None, model: str = D
         }
         for turn in (history or [])
     ]
+    config = (
+        genai_types.GenerateContentConfig(system_instruction=system_instruction)
+        if system_instruction
+        else None
+    )
 
     def call(m: str) -> str:
-        chat = _get_client().chats.create(model=m, history=genai_history)
+        chat = _get_client().chats.create(model=m, history=genai_history, config=config)
         return chat.send_message(prompt).text
 
     return _with_retry_and_fallback(model, call)

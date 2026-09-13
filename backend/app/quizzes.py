@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from app import models as m
 from app.ai.client import MODEL_FAST, GeminiUnavailable, generate_json
 from app.ai.prompts import quiz_generation_prompt
+from app.config import USER_ID
 from app.paths import UPLOADS_DIR
 from app.pipeline.jsonutil import coerce_list
 from app.pipeline.validate import validate_question
@@ -135,7 +136,7 @@ def _chapter_text(chapter: m.Chapter) -> str:
         block.content
         for lesson in chapter.lessons
         for block in lesson.blocks
-        if block.kind == "prose" and block.content
+        if block.kind in ("prose", "definition", "example") and block.content
     ]
     return "\n\n".join(prose)
 
@@ -155,3 +156,84 @@ def serialize_quiz(db: Session, quiz: m.Quiz) -> dict:
             serialize_question_for_lesson(db, qq.question) for qq in quiz.quiz_questions
         ],
     }
+
+
+def quiz_summary(db: Session, quiz_id: str | None) -> dict | None:
+    """Lightweight readiness summary for a book-page listing — the "End of
+    chapter/course quiz" rows and the "Additional quizzes" section — without
+    pulling the whole quiz payload the way serialize_quiz does.
+
+    `completed` mirrors a lesson's done/not_started split, not the mastery
+    rule: a quiz has no per-question retry loop of its own on the book page,
+    so "you've gone through it" is the only distinction that matters here.
+
+    `score` is null until at least one question's been attempted, then
+    tracks live: correct count (by each question's latest attempt, so a
+    corrected retry counts) out of the full question_count — so a
+    part-way-through quiz honestly shows partial credit rather than hiding
+    the score until `completed`.
+    """
+    if quiz_id is None:
+        return None
+    quiz = db.get(m.Quiz, quiz_id)
+    if quiz is None:
+        return None
+
+    question_ids = [qq.question_id for qq in quiz.quiz_questions]
+    # Ordered ascending by answered_at so, for a question answered more than
+    # once, the dict's last write per question_id ends up holding its LATEST
+    # attempt's is_correct rather than its first.
+    latest_is_correct: dict[str, bool] = {}
+    for question_id, is_correct in (
+        db.query(m.QuestionAttempt.question_id, m.QuestionAttempt.is_correct)
+        .filter(
+            m.QuestionAttempt.user_id == USER_ID,
+            m.QuestionAttempt.question_id.in_(question_ids),
+        )
+        .order_by(m.QuestionAttempt.answered_at)
+    ):
+        latest_is_correct[question_id] = is_correct
+
+    attempted_ids = set(latest_is_correct.keys())
+    completed = bool(question_ids) and attempted_ids == set(question_ids)
+    score = (
+        {"correct": sum(latest_is_correct.values()), "total": len(question_ids)}
+        if attempted_ids
+        else None
+    )
+
+    return {
+        "id": quiz.id,
+        "difficulty": quiz.difficulty,
+        "question_count": len(question_ids),
+        "completed": completed,
+        "score": score,
+    }
+
+
+def list_manual_quizzes(db: Session, book: m.Book) -> list[dict]:
+    """Quizzes for this book generated through the manual POST
+    /api/quizzes/generate flow (the "Generate quiz" modal) — everything
+    EXCEPT the automatic end-of-chapter/course ones already surfaced inline
+    on the book page (app/pipeline/auto_quiz.py).
+
+    There's no separate "kind" column marking a quiz as automatic vs.
+    manual: a quiz is automatic exactly when some Chapter.quiz_id or
+    Book.final_quiz_id points at it, so that set is computed directly here
+    rather than duplicated as stored state that could drift out of sync.
+
+    Ordered oldest-first (by created_at ascending) rather than the usual
+    newest-first listing convention, since the frontend numbers these "Quiz
+    1", "Quiz 2", ... by position in this list — numbering only reads
+    sensibly if that position matches creation order top to bottom.
+    """
+    auto_ids = {chapter.quiz_id for chapter in book.chapters if chapter.quiz_id}
+    if book.final_quiz_id:
+        auto_ids.add(book.final_quiz_id)
+
+    query = db.query(m.Quiz).filter(m.Quiz.book_id == book.id)
+    if auto_ids:
+        query = query.filter(m.Quiz.id.notin_(auto_ids))
+    quizzes = query.order_by(m.Quiz.created_at.asc()).all()
+
+    return [quiz_summary(db, quiz.id) for quiz in quizzes]

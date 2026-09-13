@@ -52,9 +52,14 @@ chapter has a dense exercise set.
 | id | str PK | |
 | lesson_id | str FK | |
 | order | int | position in the lesson scroll |
-| kind | str | `prose` \| `question` |
-| content | text nullable | markdown, when kind=prose |
+| kind | str | `prose` \| `question` \| `definition` \| `example` |
+| content | text nullable | markdown, when kind=prose\|definition\|example |
 | question_id | str FK nullable | when kind=question |
+
+`definition` and `example` are prose that the source text itself calls out —
+a formal definition (bold term, a "Definition N.N" marker, etc.) or a worked
+example — detected during block generation and rendered distinctly: a
+definition gets a bordered, tinted box; an example gets a lighter label.
 
 ## Question
 

@@ -21,8 +21,8 @@ const MOTIFS = ['dots', 'stripes', 'plus', 'arcs']
 // aspect-ratio blowout below). Fixed sizes per named context sidestep the
 // whole problem.
 const TITLE_SIZE_CLASSES = {
-  sm: 'text-xs',
-  md: 'text-sm sm:text-base',
+  sm: 'text-sm',
+  md: 'text-base sm:text-lg',
 }
 const AUTHOR_SIZE_CLASSES = {
   sm: 'text-[0.65rem]',
@@ -126,7 +126,7 @@ export default function BookCover({ coverSeed, title, author, size = 'md', class
         <rect width="100%" height="100%" fill={`url(#${patternId})`} opacity="0.55" />
       </svg>
 
-      <div className="relative flex h-full flex-col justify-end gap-1 overflow-hidden p-4">
+      <div className="relative flex h-full flex-col items-center justify-center gap-1 overflow-hidden p-4 text-center">
         <p className={`line-clamp-2 font-serif leading-snug text-ink ${TITLE_SIZE_CLASSES[size]}`}>
           {title}
         </p>

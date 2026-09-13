@@ -8,6 +8,7 @@ detection is the only thing that gets the once-per-book quality tier).
 import logging
 
 from app.ai.client import MODEL_FAST, generate_json
+from app.ai.context import lesson_prose_excerpt
 from app.ai.prompts import grading_prompt
 
 logger = logging.getLogger(__name__)
@@ -19,28 +20,17 @@ logger = logging.getLogger(__name__)
 FALLBACK_FEEDBACK = "Thanks for your answer — grading hit a snag, so this one's marked correct for now."
 
 
-def _lesson_excerpt(question) -> str:
-    """The lesson's own prose, concatenated in order, as grounding for the
-    grader. Reconstructed from Block rows rather than the pipeline's sidecar
-    text files: those don't exist for lessons that were never AI-generated
-    (e.g. the seeded demo book), while Block rows always do.
-
-    A quiz-only question (see app/quizzes.py) has no lesson at all — its
-    model_answer is the grader's only rubric then, which the prompt already
-    treats as the primary source of truth."""
-    if question.lesson is None:
-        return ""
-    blocks = sorted(question.lesson.blocks, key=lambda b: b.order)
-    prose = [b.content for b in blocks if b.kind == "prose" and b.content]
-    return "\n\n".join(prose)
-
-
 def grade_open_response(question, answer: str) -> tuple[bool, str]:
-    """Returns (is_correct, feedback). Never raises."""
+    """Returns (is_correct, feedback). Never raises.
+
+    A quiz-only question (see app/quizzes.py) has no lesson at all, so
+    lesson_prose_excerpt returns "" for it — model_answer is the grader's
+    only rubric then, which the prompt already treats as the primary source
+    of truth."""
     prompt = grading_prompt(
         question_prompt=question.prompt,
         model_answer=question.model_answer or "",
-        lesson_excerpt=_lesson_excerpt(question),
+        lesson_excerpt=lesson_prose_excerpt(question.lesson),
         answer=answer,
     )
     try:

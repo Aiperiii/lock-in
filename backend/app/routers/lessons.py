@@ -24,10 +24,11 @@ def get_lesson(lesson_id: str, db: Session = Depends(get_db)):
     blocks = []
     for block in lesson.blocks:
         entry = {"id": block.id, "order": block.order, "kind": block.kind}
-        if block.kind == "prose":
-            entry["content"] = block.content
-        else:
+        if block.kind == "question":
             entry["question"] = serialize_question_for_lesson(db, block.question)
+        else:
+            # prose, definition, example — all carry markdown content
+            entry["content"] = block.content
         blocks.append(entry)
 
     return {

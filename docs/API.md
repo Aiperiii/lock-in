@@ -175,7 +175,7 @@ with a canned prompt — same endpoint, no special casing.
 
 ```json
 {
-  "greeting_name": "Jamie",
+  "greeting_name": "Aya",
   "subject_tags": ["algorithms", "data structures", "discrete math"],
   "streak_days": 6,
   "review_due_count": 3,

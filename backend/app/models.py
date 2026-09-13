@@ -97,7 +97,7 @@ class Block(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     lesson_id: Mapped[str] = mapped_column(ForeignKey("lessons.id"), nullable=False)
     order: Mapped[int] = mapped_column(Integer, nullable=False)
-    kind: Mapped[str] = mapped_column(String, nullable=False)  # prose | question
+    kind: Mapped[str] = mapped_column(String, nullable=False)  # prose | question | definition | example
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     question_id: Mapped[str | None] = mapped_column(
         ForeignKey("questions.id"), nullable=True

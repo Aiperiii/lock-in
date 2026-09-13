@@ -62,11 +62,11 @@ export default function LibraryPage() {
       <TopBar initial={home?.greeting_name?.[0]} />
 
       {error && (
-        <p className="mx-auto max-w-6xl px-6 py-10 text-ink-muted">
+        <p className="mx-auto max-w-[1400px] px-6 py-10 text-ink-muted">
           Couldn't load your library. Is the backend running?
         </p>
       )}
-      {!error && !loaded && <p className="mx-auto max-w-6xl px-6 py-10 text-ink-faint">Loading…</p>}
+      {!error && !loaded && <p className="mx-auto max-w-[1400px] px-6 py-10 text-ink-faint">Loading…</p>}
 
       {!error && loaded && (
         <>
@@ -74,7 +74,7 @@ export default function LibraryPage() {
               only — it ends here, the library section below has none. */}
           <section className="relative overflow-hidden">
             <HeroBackground />
-            <div className="relative mx-auto max-w-6xl px-6 pt-10 pb-12">
+            <div className="relative mx-auto max-w-[1400px] px-6 pt-10 pb-12">
               <h1 className="mb-10 font-serif text-3xl text-ink">
                 {timeOfDayGreeting()}, {home.greeting_name}
               </h1>
@@ -108,7 +108,7 @@ export default function LibraryPage() {
             </div>
           </section>
 
-          <section className="mx-auto max-w-6xl px-6 pb-10">
+          <section className="mx-auto max-w-[1400px] px-6 pb-10">
             <h2 className="mb-4 font-mono text-xs uppercase tracking-wide text-ink-faint">Library</h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 md:grid-cols-4">
               {books.map((book) => (

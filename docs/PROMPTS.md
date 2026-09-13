@@ -67,14 +67,16 @@ Input: one lesson's text. This is the call that defines the product, so it gets 
 most instruction.
 
 ```
-Turn this lesson text into an interleaved reading experience: prose broken into
-short passages, with comprehension questions placed at the moments a concept has
-just landed.
+Turn this lesson text into an interleaved reading experience: the book's own
+prose broken into short passages, with comprehension questions placed at the
+moments a concept has just landed.
 
 Return ONLY JSON:
 {
  "blocks": [
    {"kind": "prose", "content": "markdown, 2-4 sentences"},
+   {"kind": "definition", "content": "markdown, the formal definition, near-verbatim"},
+   {"kind": "example", "content": "markdown, the worked example, near-verbatim"},
    {"kind": "question", "question": {
       "type": "mcq",
       "prompt": "...",
@@ -94,20 +96,57 @@ Open-response questions use:
    "explanation":"...","concept_tag":"...","difficulty":"...","source":"..."}
 
 Rules for prose:
-- Rewrite for clarity but keep the book's technical content exactly. Never add
-  claims the source does not make.
-- 2-4 sentences per prose block. Long walls defeat the point.
+- Default to the book's own sentences, verbatim or near-verbatim. This is not a
+  paraphrase-everything pass — the student should feel they are reading the real
+  book, not a summary written by an AI.
+- Only rephrase a specific sentence when it is genuinely unclear or overly dense
+  out of context (e.g. it leans on something several pages earlier). Even then,
+  stay close to the original wording and terminology — a light clarification, not
+  a rewrite.
+- Never add claims the source does not make.
+- 2-4 sentences per prose block. Long walls defeat the point — split with the
+  book's own paragraph and sentence breaks, don't compress them into a summary.
 - Preserve notation, formulas, and examples from the source.
+- Light emphasis for scanning, not decoration: **bold** a key term the first time
+  it's defined in the lesson (e.g. "a **tautology** is a compound proposition that
+  is always true"), and *italicize* a technical or mathematical term used
+  descriptively elsewhere. At most one or two emphasized spans per prose block —
+  most blocks need none at all. Never bold or italicize a whole sentence.
+
+Rules for definitions and examples:
+- Use "definition" when the source text itself presents something as a formal
+  definition — a bolded/introduced term, an explicit "Definition N.N" marker, a
+  set-off definition box in the original, or a sentence structured as "A/An X is
+  a Y that...". Content should be that definition, near-verbatim.
+- Use "example" when the source marks something as a worked example (an
+  "Example N.N" marker, "For example, ...", a solved problem walked through
+  step by step). Keep the book's own steps and numbers; don't invent a new
+  example or shorten away the working.
+- Don't force it — most lessons will have a handful of definition/example blocks
+  at most, not one per paragraph. Ordinary prose stays kind "prose".
 
 Rules for questions:
 - A question comes right after the passage that answers it, never before.
-- Roughly 1 question per 2-3 prose blocks. Do not check trivia; check understanding.
+- Roughly 1 question per 2-3 prose blocks.
+- Every question must test something the student needs to understand this
+  chapter's core material — never tangential facts, historical trivia, or
+  name-dropped topics mentioned only in passing.
 - If the source text contains its own exercises, USE THEM. Set source to "book" and
   keep the original wording. Only generate your own to fill gaps, marked "ai".
-- MCQ distractors must be plausible misconceptions a student would actually hold.
-  Never absurd options, never "all of the above".
-- Mix question types: about 70% mcq, 30% open. Open questions are for "explain why"
-  and "in your own words", never for facts with one short answer.
+- Mix MCQ styles across the lesson — don't repeat one pattern for every question:
+  - "spot the error": present a flawed statement or a worked step with a mistake
+    in it; the options name what's wrong with it.
+  - "fill in the blank": a sentence or equation missing one term, with four
+    candidate terms to choose from.
+  - straightforward concept-check — keep some of these, just not all of them.
+  MCQ distractors must be plausible misconceptions a student would actually hold.
+  Never absurd options, never strawmen, never "all of the above".
+- Mix open-response styles too:
+  - "explain why" / "in your own words" — keep some of these.
+  - "apply this to a new example" — pose a scenario not found in the source text
+    and ask the student to apply the concept to it.
+  - "compare/contrast" two related concepts from the text.
+- Mix question types: about 70% mcq, 30% open.
 - Test only what is in this text. Never require outside knowledge.
 
 LESSON: {lesson_title}
@@ -181,6 +220,17 @@ Rules:
   spot-the-error.
 - Never paraphrase a question they have already seen.
 - Vary difficulty across the set.
+- Every question must test something the student needs to understand this
+  chapter's core material — never tangential facts, historical trivia, or
+  name-dropped topics mentioned only in passing.
+- Mix MCQ styles — don't repeat one pattern:
+  - "spot the error": a flawed statement or worked step; the options name what's
+    wrong with it.
+  - "fill in the blank": a sentence or equation missing one term, four candidates.
+  - straightforward concept-check — keep some, just not all.
+  MCQ distractors must be plausible misconceptions, never strawmen.
+- Mix open-response styles: "explain why" (keep some), "apply this to a new
+  example" not in the source text, and "compare/contrast" two related concepts.
 
 CONCEPTS: {concept_tags}
 SOURCE TEXT: {relevant_excerpts}

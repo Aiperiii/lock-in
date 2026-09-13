@@ -9,5 +9,5 @@ if a profile concept ever gets built.
 
 USER_ID = 1
 
-GREETING_NAME = "Jamie"
+GREETING_NAME = "Aya"
 SUBJECT_TAGS = ["algorithms", "data structures", "discrete math"]

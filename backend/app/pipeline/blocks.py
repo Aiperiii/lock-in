@@ -1,6 +1,8 @@
 """Block generation: turns one lesson's text into interleaved prose/question
-Block rows, using the prompt in docs/PROMPTS.md section 3 — "the call that
-defines the product" (CLAUDE.md).
+Block rows (plus "definition" and "example", two prose variants the model
+calls out when the source text itself marks something as one), using the
+prompt in docs/PROMPTS.md section 3 — "the call that defines the product"
+(CLAUDE.md).
 
 One call per lesson, batched per lesson rather than per question (per
 CLAUDE.md's rate-limit guidance), on MODEL_FAST — same high-volume reasoning
@@ -90,8 +92,14 @@ def run_for_lesson(db: Session, lesson: m.Lesson) -> list[m.Block]:
             )
             question_count += 1
         else:
+            # prose, definition, and example all just carry markdown content —
+            # only the kind differs, which is all the frontend needs to pick
+            # the right presentation.
             row = m.Block(
-                lesson_id=lesson.id, order=order, kind="prose", content=block_data["content"]
+                lesson_id=lesson.id,
+                order=order,
+                kind=block_data["kind"],
+                content=block_data["content"],
             )
         db.add(row)
         created.append(row)
@@ -102,20 +110,24 @@ def run_for_lesson(db: Session, lesson: m.Lesson) -> list[m.Block]:
     return created
 
 
+PROSE_LIKE_KINDS = ("prose", "definition", "example")
+
+
 def _generate_blocks(text: str, lesson_title: str) -> list[dict]:
-    """Returns a normalized list of {"kind": "prose", "content"} or
-    {"kind": "question", "question": {...validated fields...}} dicts. Never
-    raises or returns empty — falls back to one prose block with the raw
-    lesson text."""
+    """Returns a normalized list of {"kind": "prose"|"definition"|"example",
+    "content"} or {"kind": "question", "question": {...validated fields...}}
+    dicts. Never raises or returns empty — falls back to one prose block with
+    the raw lesson text."""
     entries = _ask_gemini(text, lesson_title)
 
     result: list[dict] = []
     for entry in entries:
-        if entry.get("kind") == "prose":
+        kind = entry.get("kind")
+        if kind in PROSE_LIKE_KINDS:
             content = (entry.get("content") or "").strip()
             if content:
-                result.append({"kind": "prose", "content": content})
-        elif entry.get("kind") == "question":
+                result.append({"kind": kind, "content": content})
+        elif kind == "question":
             question = _validate_question(entry.get("question"))
             if question:
                 result.append({"kind": "question", "question": question})
